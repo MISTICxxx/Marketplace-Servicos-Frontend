@@ -71,13 +71,14 @@ src/main.jsx              Inicialização do React e importação de estilos
 ## Rotas disponíveis
 
 - `/` — página inicial.
-- `/servicos` — espaço inicial para o futuro diretório de serviços; exemplos estão identificados como ilustrativos.
+- `/servicos` — diretório demonstrativo com pesquisa por texto, categoria e bairro.
+- `/prestadores/:id` — perfil demonstrativo com os dados compartilhados com a Home e o diretório.
 - `/sobre` — visão do produto e estado da fundação.
 - `/diagnostico-api` — chamada `GET /health` pela instância Axios configurada.
 - Qualquer outra URL — página NotFound.
 
 ## Estado e próximas etapas
 
-Já existem o layout comum, os componentes iniciais, o roteamento, o cliente HTTP e o diagnóstico com estados de carregamento, sucesso e erro. O diagnóstico informa quando a API não está disponível; não há backend mockado neste repositório.
+Já existem o layout comum, a Home com pesquisa, o diretório com filtros locais, perfis demonstrativos, o cliente HTTP e o diagnóstico com estados de carregamento, sucesso e erro. Os perfis, regiões, valores e avaliações locais são conteúdo ilustrativo. O diagnóstico informa quando a API não está disponível; não há backend mockado neste repositório.
 
 Busca funcional de prestadores, perfis com dados reais, criação e persistência de solicitações, conversas, propostas, comparação de orçamentos, contratação e autenticação ficam para etapas futuras. A API será mantida em um repositório separado. As telas locais em `docs/wireframes/` são wireframes HTML de baixa fidelidade; a transposição para Figma e o compartilhamento de um link continuam pendentes.

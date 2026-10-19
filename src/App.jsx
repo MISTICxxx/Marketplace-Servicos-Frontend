@@ -5,6 +5,7 @@ import AboutPage from './pages/AboutPage.jsx'
 import ApiDiagnosticPage from './pages/ApiDiagnosticPage.jsx'
 import Home from './pages/Home.jsx'
 import NotFound from './pages/NotFound.jsx'
+import ProviderProfilePage from './pages/ProviderProfilePage.jsx'
 import ServicesPage from './pages/ServicesPage.jsx'
 import './App.css'
 
@@ -17,6 +18,7 @@ function AppLayout() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/servicos" element={<ServicesPage />} />
+          <Route path="/prestadores/:id" element={<ProviderProfilePage />} />
           <Route path="/sobre" element={<AboutPage />} />
           <Route path="/diagnostico-api" element={<ApiDiagnosticPage />} />
           <Route path="*" element={<NotFound />} />

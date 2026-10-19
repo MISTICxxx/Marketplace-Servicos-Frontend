@@ -14,6 +14,10 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--color-background);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  line-height: 1.5;
 }
 
 body,
@@ -21,7 +25,7 @@ button,
 input,
 textarea,
 select {
-  font-family: inherit;
+  font-family: var(--font-sans);
 }
 
 img,
@@ -37,23 +41,35 @@ a {
   text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
 button,
 a {
   -webkit-tap-highlight-color: transparent;
-}
-
-a:focus-visible,
-button:focus-visible {
-  outline: 3px solid var(--color-coral);
-  outline-offset: 3px;
 }
 
 button {
   color: inherit;
 }
 
+input,
+select {
+  color: var(--color-ink);
+}
+
+fieldset {
+  min-width: 0;
+  margin: 0;
+}
+
 ::selection {
-  background: var(--color-lemon);
+  background: var(--color-accent);
   color: var(--color-ink);
 }
 

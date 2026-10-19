@@ -6,7 +6,7 @@ function AboutPage() {
       <header className="page-heading">
         <p className="eyebrow">Sobre o projeto</p>
         <h1>Serviços que aproximam</h1>
-        <p>Fechou! é um marketplace em construção para facilitar o encontro entre pessoas que precisam de um serviço e profissionais que podem realizá-lo.</p>
+          <p>Fechou! é um marketplace em construção para facilitar o encontro entre pessoas que precisam de um serviço e profissionais que podem realizá-lo.</p>
       </header>
 
       <div className="about-layout">
@@ -17,7 +17,7 @@ function AboutPage() {
         </div>
         <Card className="about-callout">
           <h2>Estado atual</h2>
-          <p>Fundação inicial do frontend: navegação, páginas-base e preparação para futura integração com uma API separada.</p>
+          <p>Home, diretório local demonstrativo e perfis navegáveis estão prontos para explorar. Solicitações e conversas permanecem planejadas, e a API será desenvolvida em um repositório separado.</p>
         </Card>
       </div>
     </section>
