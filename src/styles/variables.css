@@ -37,8 +37,10 @@
   --radius-sm: 0.55rem;
   --radius-md: 0.9rem;
   --radius-lg: 1.3rem;
+  --radius-paper: 0.42rem;
   --radius-pill: 999px;
   --shadow-card: 0 0.4rem 1.5rem rgb(52 45 31 / 6%);
+  --shadow-paper: 0 0.4rem 1.2rem rgb(52 45 31 / 8%);
   --shadow-float: 0 1rem 2.5rem rgb(25 45 37 / 18%);
   --content-width: 78rem;
   --page-gutter: 1.25rem;

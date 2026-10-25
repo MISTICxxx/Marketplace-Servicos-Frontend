@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link, createSearchParams, useNavigate } from 'react-router-dom'
-import DemoNotice from '../components/DemoNotice.jsx'
 import ProviderCard from '../components/ProviderCard.jsx'
 import ProviderSearch from '../components/ProviderSearch.jsx'
 import Card from '../components/common/Card.jsx'
@@ -22,9 +21,8 @@ const steps = [
   },
   {
     number: '03',
-    title: 'Combine os próximos passos',
-    description: 'Solicitações e conversas serão habilitadas em uma próxima etapa.',
-    planned: true,
+    title: 'Registre o que precisa',
+    description: 'Organize os detalhes e converse sobre o serviço.',
   },
 ]
 
@@ -48,7 +46,7 @@ function Home() {
               Encontre quem <span>resolve.</span>
             </h1>
             <p className="hero-description">
-              Pesquise um serviço, explore prestadores demonstrativos e conheça cada perfil para descobrir o próximo passo.
+              Pesquise um serviço, conheça os perfis e descubra quem pode ajudar.
             </p>
             <ProviderSearch
               buttonLabel="Buscar"
@@ -59,28 +57,35 @@ function Home() {
               onSubmit={handleSearch}
               value={searchTerm}
             />
+            <Link className="button button--primary home-request-link" to="/solicitar-servico">
+              Criar um pedido
+            </Link>
             <Link className="hero-text-link" to="/servicos">
               Explorar todos os prestadores <span aria-hidden="true">→</span>
             </Link>
           </div>
 
           <div className="hero-visual" aria-hidden="true">
-            <span className="hero-visual-stamp">Curitiba · PR</span>
-            <div className="hero-orbit hero-orbit--outer" aria-hidden="true" />
-            <div className="hero-orbit hero-orbit--inner" aria-hidden="true" />
             <div className="hero-ticket">
-              <span className="ticket-kicker">Fechou! recomenda</span>
-              <strong>Um bom começo é saber o que você precisa.</strong>
+              <div className="hero-ticket-masthead">
+                <span className="ticket-kicker">GUIA DE SERVIÇOS</span>
+                <span className="hero-visual-stamp">CURITIBA · PR</span>
+              </div>
+              <strong>O próximo serviço começa com uma busca.</strong>
               <span className="ticket-rule" aria-hidden="true" />
-              <span className="ticket-meta">PERFIS ILUSTRATIVOS</span>
+              <ul className="ticket-categories">
+                {serviceCategories.slice(0, 3).map((category, index) => (
+                  <li key={category.id}>
+                    <span>{String(index + 1).padStart(2, '0')}</span>
+                    <span>{category.name}</span>
+                  </li>
+                ))}
+              </ul>
+              <span className="ticket-meta">BUSCA · SERVIÇOS · PERFIS</span>
             </div>
-            <span className="hero-float hero-float--electric">Elétrica</span>
-            <span className="hero-float hero-float--home">Casa em ordem</span>
           </div>
         </div>
       </section>
-
-      <div className="page-container demo-intro"><DemoNotice /></div>
 
       <section className="section-block page-container" aria-labelledby="categories-title">
         <div className="section-heading section-heading--row">
@@ -111,7 +116,8 @@ function Home() {
             <div>
               <p className="eyebrow">Uma amostra do diretório</p>
               <h2 id="featured-title">Prestadores em destaque</h2>
-              <p>Conheça alguns dos perfis fictícios preparados para esta demonstração.</p>
+              <p>Uma amostra da apresentação dos perfis disponíveis no diretório.</p>
+              <p className="provider-example-note">Perfis e valores são ilustrativos.</p>
             </div>
             <Link className="section-link" to="/servicos">Ver todos <span aria-hidden="true">→</span></Link>
           </div>
@@ -127,7 +133,7 @@ function Home() {
         <div className="section-heading">
           <p className="eyebrow">Uma jornada simples</p>
           <h2 id="how-title">Do que você precisa ao próximo passo</h2>
-          <p>Explore e conheça os perfis hoje. A conversa e o pedido de serviço virão em uma etapa futura.</p>
+          <p>Explore os perfis, registre um pedido e converse sobre o serviço. Propostas e contratação virão em etapas futuras.</p>
         </div>
         <div className="steps-grid">
           {steps.map((step) => (

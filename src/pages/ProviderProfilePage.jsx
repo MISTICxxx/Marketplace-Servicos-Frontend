@@ -1,7 +1,5 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import DemoNotice from '../components/DemoNotice.jsx'
 import ProviderAvatar from '../components/ProviderAvatar.jsx'
-import Button from '../components/common/Button.jsx'
 import Card from '../components/common/Card.jsx'
 import { formatCurrency } from '../utils/formatCurrency.js'
 import { getProviderById, getServiceCategories } from '../services/providerService.js'
@@ -25,7 +23,7 @@ function ProviderProfilePage() {
       <section className="page-container profile-missing" aria-labelledby="profile-missing-title">
         <span className="eyebrow">Perfil indisponível</span>
         <h1 id="profile-missing-title">Não encontramos esse prestador.</h1>
-        <p>Confira o endereço ou volte ao diretório para explorar outros perfis demonstrativos.</p>
+        <p>Confira o endereço ou volte ao diretório para explorar outros perfis.</p>
         <Link className="button button--primary" to="/servicos">Voltar ao diretório</Link>
       </section>
     )
@@ -40,8 +38,6 @@ function ProviderProfilePage() {
         <Link to="/servicos">Ver todos os prestadores <span aria-hidden="true">→</span></Link>
       </nav>
 
-      <DemoNotice />
-
       <header className="profile-hero">
         <ProviderAvatar
           category={provider.categories[0]}
@@ -49,14 +45,9 @@ function ProviderProfilePage() {
           size="large"
         />
         <div className="profile-identity">
-          <p className="eyebrow">Perfil demonstrativo</p>
+          <p className="eyebrow">Perfil de exemplo · Curitiba, PR</p>
           <h1>{provider.name}</h1>
           <p className="profile-specialty">{provider.specialty}</p>
-          <p className="profile-rating">
-            <span aria-hidden="true">★</span>
-            Avaliação ilustrativa: {provider.illustrativeRating.average.toFixed(1)} de 5
-            <span>({provider.illustrativeRating.reviews} opiniões de exemplo)</span>
-          </p>
         </div>
       </header>
 
@@ -70,12 +61,11 @@ function ProviderProfilePage() {
 
           <Card className="profile-content-card">
             <p className="eyebrow">O que oferece</p>
-            <h2>Serviços demonstrativos</h2>
+            <h2>Serviços</h2>
             <ul className="profile-services-list">
               {provider.services.map((service) => (
                 <li key={service.name}>
                   <span>{service.name}</span>
-                  <span className="profile-service-note">Valor de referência ilustrativo</span>
                 </li>
               ))}
             </ul>
@@ -91,7 +81,7 @@ function ProviderProfilePage() {
           <Card className="receipt-card">
             <div className="receipt-card-heading">
               <div>
-                <p className="receipt-kicker">REFERÊNCIA · DEMO</p>
+                <p className="receipt-kicker">VALORES · REFERÊNCIA</p>
                 <h2>Valores de referência</h2>
               </div>
               <span className="receipt-mark" aria-hidden="true">f!</span>
@@ -104,7 +94,7 @@ function ProviderProfilePage() {
                 </li>
               ))}
             </ul>
-            <p className="receipt-footnote">Valores fictícios para demonstrar a apresentação de referências. Não são orçamento ou oferta.</p>
+            <p className="receipt-footnote">Valores ilustrativos, sujeitos a confirmação. Não são um orçamento.</p>
           </Card>
 
           <Card className="profile-coverage-card">
@@ -118,16 +108,16 @@ function ProviderProfilePage() {
           </Card>
 
           <Card className="profile-action-card">
-            <h2>Quer combinar um serviço?</h2>
-            <p>O envio de solicitações será habilitado em uma próxima etapa.</p>
-            <Button
-              aria-describedby="request-planned-note"
-              className="profile-request-button"
-              disabled
+            <h2>Converse sobre um pedido</h2>
+            <p>Escolha um pedido aberto para contextualizar a conversa.</p>
+            <Link
+              className="button button--primary profile-request-button"
+              to={`/conversas?prestador=${encodeURIComponent(provider.id)}`}
             >
-              Solicitar serviço
-            </Button>
-            <p className="planned-feature-note" id="request-planned-note">Funcionalidade planejada · ainda indisponível</p>
+              Iniciar conversa
+            </Link>
+            <p className="planned-feature-note">Precisa registrar um serviço primeiro?</p>
+            <Link className="button button--secondary profile-request-button" to="/solicitar-servico">Criar solicitação</Link>
           </Card>
         </aside>
       </div>

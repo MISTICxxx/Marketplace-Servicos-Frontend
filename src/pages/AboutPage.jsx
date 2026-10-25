@@ -13,11 +13,11 @@ function AboutPage() {
         <div className="about-copy">
           <h2>Uma jornada mais clara</h2>
           <p>A proposta é reunir a descoberta de prestadores, a apresentação de perfis, o envio de solicitações e a comunicação entre consumidores e profissionais.</p>
-          <p>Em etapas futuras, o produto poderá apoiar o recebimento e a comparação de orçamentos e a contratação. Esta versão prepara a estrutura do frontend; os fluxos ainda não estão implementados.</p>
+          <p>Pedidos e mensagens ficam neste navegador e não chegam a profissionais. Mensagens reais, propostas, comparação de orçamentos e contratação dependem das próximas etapas e da API.</p>
         </div>
         <Card className="about-callout">
           <h2>Estado atual</h2>
-          <p>Home, diretório local demonstrativo e perfis navegáveis estão prontos para explorar. Solicitações e conversas permanecem planejadas, e a API será desenvolvida em um repositório separado.</p>
+          <p>Home, diretório, perfis, conta, pedidos e conversas estão disponíveis para explorar. A API será desenvolvida em um repositório separado; pedidos e mensagens não são enviados a profissionais.</p>
         </Card>
       </div>
     </section>
