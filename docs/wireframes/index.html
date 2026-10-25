@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fechou! — wireframes iniciais</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #26353a;
+        background: #f3f1ed;
+        --line: #9ea7a5;
+        --fill: #e5e8e6;
+        --fill-dark: #cdd4d1;
+        --paper: #fff;
+        --ink: #26353a;
+        --muted: #65716f;
+      }
+      * { box-sizing: border-box; }
+      body { min-width: 320px; margin: 0; }
+      header.page-header { padding: 32px max(20px, calc((100% - 1120px) / 2)) 20px; }
+      .page-header h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 38px); letter-spacing: -1px; }
+      .page-header p { max-width: 680px; margin: 0; color: var(--muted); line-height: 1.55; }
+      .screen-list { display: grid; max-width: 1160px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; margin: auto; padding: 12px 20px 48px; }
+      .screen { min-width: 0; overflow: hidden; border: 1px solid #d2d7d3; border-radius: 12px; background: var(--paper); box-shadow: 0 8px 20px rgb(25 40 40 / 5%); }
+      .screen-heading { display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #d9dedb; padding: 14px 16px; }
+      .screen-number { display: grid; width: 27px; height: 27px; place-items: center; border: 1px solid var(--line); border-radius: 50%; font-size: 12px; font-weight: 700; }
+      .screen-heading h2 { margin: 0; font-size: 16px; }
+      .screen-content { min-height: 340px; padding: 16px; }
+      .mock-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--line); padding: 9px 11px; font-size: 12px; }
+      .mock-brand { font-weight: 700; white-space: nowrap; }
+      .mock-links { display: flex; gap: 12px; color: var(--muted); }
+      .hero-schematic { display: grid; grid-template-columns: 1.15fr .85fr; gap: 12px; margin-top: 13px; }
+      .hero-copy, .hero-visual, .block, .input, .button, .avatar, .photo, .line, .tag, .message, .proposal, .filter { border: 1px solid var(--line); border-radius: 4px; background: var(--fill); }
+      .hero-copy { min-height: 130px; padding: 14px; }
+      .hero-visual { display: grid; min-height: 130px; place-items: center; background: var(--fill-dark); color: #596460; font-size: 12px; text-align: center; }
+      .line { height: 10px; margin: 9px 0; border: 0; background: #cbd2cf; }
+      .line.short { width: 54%; }
+      .line.medium { width: 78%; }
+      .mock-button { display: inline-block; min-width: 90px; height: 27px; margin-top: 7px; border: 1px solid #65716f; border-radius: 16px; background: #d4dad7; }
+      .label { margin: 13px 0 8px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+      .row { display: flex; gap: 8px; }
+      .category { flex: 1; min-height: 52px; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: #f1f3f2; }
+      .category .line { height: 8px; margin: 5px 0; }
+      .directory-layout, .profile-layout, .chat-layout { display: grid; grid-template-columns: .65fr 1.35fr; gap: 12px; margin-top: 14px; }
+      .filter { min-height: 235px; padding: 10px; }
+      .filter .block { height: 24px; margin: 9px 0; background: #f3f4f3; }
+      .results { display: grid; align-content: start; gap: 9px; }
+      .result-card { display: flex; min-height: 70px; align-items: center; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 4px; }
+      .avatar { width: 40px; height: 40px; flex: 0 0 auto; border-radius: 50%; background: var(--fill-dark); }
+      .result-copy { flex: 1; }
+      .result-copy .line { height: 8px; margin: 5px 0; }
+      .small-button { width: 52px; height: 24px; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 12px; background: var(--fill); }
+      .profile-layout { grid-template-columns: .8fr 1.2fr; }
+      .profile-card { min-height: 235px; padding: 14px; border: 1px solid var(--line); border-radius: 4px; text-align: center; }
+      .profile-card .avatar { width: 66px; height: 66px; margin: 0 auto 12px; }
+      .profile-card .line { margin-inline: auto; }
+      .profile-details { display: grid; align-content: start; gap: 9px; }
+      .photo { height: 78px; background: var(--fill-dark); }
+      .block { min-height: 68px; padding: 10px; background: #f5f6f5; }
+      .form-schematic { max-width: 420px; margin: 14px auto 0; padding: 16px; border: 1px solid var(--line); border-radius: 4px; }
+      .form-schematic .input { height: 35px; margin: 7px 0 13px; background: #f6f7f6; }
+      .form-schematic .input.large { height: 80px; }
+      .form-schematic .mock-button { width: 100%; }
+      .chat-layout { grid-template-columns: .58fr 1.42fr; }
+      .conversation-list { display: grid; align-content: start; gap: 7px; }
+      .conversation-list .block { min-height: 46px; padding: 7px; }
+      .chat-window { display: flex; min-height: 245px; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--line); }
+      .chat-top { height: 28px; border-bottom: 1px solid var(--line); }
+      .message { width: 76%; min-height: 32px; padding: 7px; font-size: 10px; }
+      .message.outgoing { align-self: flex-end; background: #d5ddda; }
+      .proposal { min-height: 65px; padding: 8px; background: #ecefec; }
+      .composer { display: flex; gap: 6px; margin-top: auto; }
+      .composer .input { height: 30px; flex: 1; background: #f6f7f6; }
+      .composer .small-button { height: 30px; }
+      .caption { margin: 10px 0 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+      @media (max-width: 700px) {
+        .screen-list { grid-template-columns: 1fr; padding-inline: 14px; }
+        header.page-header { padding-inline: 18px; }
+        .screen-content { min-height: 310px; }
+      }
+      @media (max-width: 400px) {
+        .screen-list { padding-inline: 9px; }
+        .screen-content { padding: 11px; }
+        .mock-links { gap: 7px; font-size: 10px; }
+        .directory-layout, .profile-layout { grid-template-columns: .7fr 1.3fr; gap: 7px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <h1>Fechou! — wireframes iniciais</h1>
+      <p>Esquemas de baixa fidelidade para discutir a estrutura das principais telas planejadas. Caixas e textos são ilustrativos; não representam profissionais, avaliações ou dados reais.</p>
+    </header>
+
+    <main class="screen-list">
+      <article class="screen" aria-labelledby="screen-home">
+        <header class="screen-heading"><span class="screen-number">1</span><h2 id="screen-home">Página inicial</h2></header>
+        <div class="screen-content">
+          <div class="mock-nav"><span class="mock-brand">Fechou!</span><span class="mock-links"><span>Início</span><span>Serviços</span><span>Sobre</span></span></div>
+          <div class="hero-schematic"><div class="hero-copy"><div class="line short"></div><div class="line"></div><div class="line medium"></div><div class="mock-button"></div></div><div class="hero-visual">Área de destaque</div></div>
+          <p class="label">Categorias de serviço</p>
+          <div class="row"><div class="category"><div class="line"></div></div><div class="category"><div class="line"></div></div><div class="category"><div class="line"></div></div></div>
+        </div>
+      </article>
+
+      <article class="screen" aria-labelledby="screen-directory">
+        <header class="screen-heading"><span class="screen-number">2</span><h2 id="screen-directory">Diretório de prestadores</h2></header>
+        <div class="screen-content">
+          <div class="line short"></div><div class="line medium"></div>
+          <div class="directory-layout"><aside class="filter"><div class="label">Filtros</div><div class="block"></div><div class="block"></div><div class="block"></div></aside><div class="results"><div class="result-card"><div class="avatar"></div><div class="result-copy"><div class="line medium"></div><div class="line"></div></div><div class="small-button"></div></div><div class="result-card"><div class="avatar"></div><div class="result-copy"><div class="line medium"></div><div class="line"></div></div><div class="small-button"></div></div><div class="result-card"><div class="avatar"></div><div class="result-copy"><div class="line medium"></div><div class="line"></div></div><div class="small-button"></div></div></div></div>
+        </div>
+      </article>
+
+      <article class="screen" aria-labelledby="screen-profile">
+        <header class="screen-heading"><span class="screen-number">3</span><h2 id="screen-profile">Perfil de prestador</h2></header>
+        <div class="screen-content">
+          <div class="line short"></div>
+          <div class="profile-layout"><section class="profile-card"><div class="avatar"></div><div class="line medium"></div><div class="line short"></div><div class="mock-button"></div></section><div class="profile-details"><div class="photo"> </div><div class="block"><div class="line medium"></div><div class="line"></div></div><div class="block"><div class="line medium"></div><div class="line"></div></div></div></div>
+          <p class="caption">Espaços reservados para apresentação, serviços e contato.</p>
+        </div>
+      </article>
+
+      <article class="screen" aria-labelledby="screen-request">
+        <header class="screen-heading"><span class="screen-number">4</span><h2 id="screen-request">Criação de solicitação</h2></header>
+        <div class="screen-content">
+          <div class="line short"></div>
+          <div class="form-schematic"><div class="label">Serviço desejado</div><div class="input"></div><div class="label">Descreva o que você precisa</div><div class="input large"></div><div class="label">Local e período (se aplicável)</div><div class="input"></div><div class="mock-button"></div></div>
+        </div>
+      </article>
+
+      <article class="screen" aria-labelledby="screen-conversation">
+        <header class="screen-heading"><span class="screen-number">5</span><h2 id="screen-conversation">Conversa e proposta</h2></header>
+        <div class="screen-content">
+          <div class="line short"></div>
+          <div class="chat-layout"><aside class="conversation-list"><div class="block"></div><div class="block"></div><div class="block"></div></aside><section class="chat-window" aria-label="Esquema de conversa"><div class="chat-top"></div><div class="message">Mensagem sobre a solicitação</div><div class="message outgoing">Resposta</div><div class="proposal"><strong>Proposta</strong><div class="line medium"></div></div><div class="composer"><div class="input"></div><div class="small-button"></div></div></section></div>
+        </div>
+      </article>
+    </main>
+  </body>
+</html>
