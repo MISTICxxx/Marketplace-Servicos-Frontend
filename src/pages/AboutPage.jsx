@@ -13,11 +13,11 @@ function AboutPage() {
         <div className="about-copy">
           <h2>Uma jornada mais clara</h2>
           <p>A proposta é reunir a descoberta de prestadores, a apresentação de perfis, o envio de solicitações e a comunicação entre consumidores e profissionais.</p>
-          <p>Pedidos e mensagens ficam neste navegador e não chegam a profissionais. Mensagens reais, propostas, comparação de orçamentos e contratação dependem das próximas etapas e da API.</p>
+          <p>Pedidos e mensagens são salvos na API e associados às contas participantes. Propostas, comparação de orçamentos e contratação seguem como próximas etapas.</p>
         </div>
         <Card className="about-callout">
           <h2>Estado atual</h2>
-          <p>Home, diretório, perfis, conta, pedidos e conversas estão disponíveis para explorar. A API será desenvolvida em um repositório separado; pedidos e mensagens não são enviados a profissionais.</p>
+          <p>Home, diretório, perfis, conta, pedidos e conversas estão disponíveis para explorar. A API Node.js conecta o frontend ao MySQL para contas, perfis, pedidos e conversas.</p>
         </Card>
       </div>
     </section>

@@ -6,7 +6,7 @@ function ApiDiagnosticPage() {
       <header className="page-heading">
         <p className="eyebrow">Integração</p>
         <h1>Diagnóstico da API</h1>
-        <p>Verifique a conexão do frontend com o endpoint de saúde. A API será desenvolvida em um repositório separado.</p>
+        <p>Verifique a conexão do frontend com o endpoint de saúde. A API está conectada ao frontend e ao banco MySQL.</p>
       </header>
       <APITest />
     </section>
