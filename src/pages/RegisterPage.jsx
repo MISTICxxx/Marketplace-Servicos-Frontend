@@ -13,6 +13,7 @@ function isValidEmail(value) {
 
 function RegisterPage() {
   const [values, setValues] = useState({ name: '', email: '', password: '', confirmation: '' })
+  const [role, setRole] = useState('customer')
   const [passwordVisible, setPasswordVisible] = useState(false)
   const [confirmationVisible, setConfirmationVisible] = useState(false)
   const [errors, setErrors] = useState({})
@@ -39,7 +40,7 @@ function RegisterPage() {
     return nextErrors
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = validate()
     setErrors(nextErrors)
@@ -48,14 +49,14 @@ function RegisterPage() {
 
     setIsSubmitting(true)
     try {
-      createAccount({ name: values.name, email: values.email })
-      navigate(getAccountReturnPath(location.state?.from), {
+      await createAccount({ name: values.name, email: values.email, password: values.password, role })
+      navigate(role === 'provider' ? '/painel-prestador' : getAccountReturnPath(location.state?.from), {
         replace: true,
-        state: { notice: 'Perfil criado. A senha não foi armazenada.' },
+        state: { notice: 'Conta criada com sucesso.' },
       })
     } catch (error) {
-      const message = error.message || 'Não foi possível criar seu perfil.'
-      if (message.startsWith('Já existe')) {
+      const message = error.response?.data?.error || error.message || 'Não foi possível criar sua conta.'
+      if (error.response?.status === 409) {
         setErrors((currentErrors) => ({ ...currentErrors, email: message }))
       } else {
         setFormError(message)
@@ -72,7 +73,8 @@ function RegisterPage() {
       <section aria-labelledby="register-form-title" className="account-form-card">
         <p className="eyebrow">Novo perfil</p>
         <h2 id="register-form-title">Criar conta</h2>
-        <p className="account-form-description">Seus dados ficam neste navegador. A senha é descartada após a validação.</p>
+        <p className="account-form-description">Crie uma conta para salvar seus dados no marketplace.</p>
+        <fieldset className="account-role-picker"><legend>Quero criar uma conta de</legend><label><input checked={role === 'customer'} name="register-role" onChange={() => setRole('customer')} type="radio" /> Cliente</label><label><input checked={role === 'provider'} name="register-role" onChange={() => setRole('provider')} type="radio" /> Prestador de serviços</label></fieldset>
         {formError && <p className="form-message form-message--error" role="alert">{formError}</p>}
 
         <form aria-busy={isSubmitting} noValidate onSubmit={handleSubmit}>
@@ -96,7 +98,7 @@ function RegisterPage() {
           </FormField>
           <FormField
             error={errors.password}
-            hint="Use 8 caracteres ou mais. A senha é descartada após a validação."
+            hint="Use 8 caracteres ou mais. A senha fica protegida no servidor."
             id="register-password"
             label="Senha"
             suffix={(
@@ -142,7 +144,7 @@ function RegisterPage() {
             />
           </FormField>
           <Button className="account-submit" disabled={isSubmitting} type="submit">
-            {isSubmitting && <LoadingSpinner label="Criando perfil local" />}
+            {isSubmitting && <LoadingSpinner label="Criando conta" />}
             {isSubmitting ? 'Criando…' : 'Criar perfil'}
           </Button>
         </form>

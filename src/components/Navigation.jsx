@@ -77,7 +77,14 @@ function Navigation() {
             </button>
             <div className="account-menu-panel" hidden={!menuOpen} id="account-menu-panel">
               <p className="account-menu-greeting">Sua conta</p>
-              <NavLink
+              {user.role === 'provider' ? (
+                <>
+                  <NavLink aria-current={pathname === '/painel-prestador' ? 'page' : undefined} className="account-menu-link" onClick={() => setMenuOpen(false)} to="/painel-prestador">Painel profissional</NavLink>
+                  <NavLink aria-current={pathname.startsWith('/conversas') ? 'page' : undefined} className="account-menu-link" onClick={() => setMenuOpen(false)} to="/conversas">Conversas com clientes</NavLink>
+                </>
+              ) : (
+                <>
+                  <NavLink
                 aria-current={pathname.startsWith('/conversas') ? 'page' : undefined}
                 className="account-menu-link"
                 onClick={() => setMenuOpen(false)}
@@ -93,13 +100,15 @@ function Navigation() {
               >
                 Meus pedidos
               </NavLink>
+                </>
+              )}
               <NavLink
                 aria-current={pathname === '/minha-conta' ? 'page' : undefined}
                 className="account-menu-link"
                 onClick={() => setMenuOpen(false)}
                 to="/minha-conta"
               >
-                Meu perfil
+                {user.role === 'provider' ? 'Dados da conta' : 'Meu perfil'}
               </NavLink>
               <button className="account-menu-link" onClick={handleLogout} type="button">
                 Sair da conta

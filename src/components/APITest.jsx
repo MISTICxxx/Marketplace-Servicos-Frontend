@@ -14,7 +14,7 @@ function APITest() {
 
     async function checkApiHealth() {
       try {
-        const response = await api.get('/health', { signal: controller.signal })
+        const response = await api.get('/health', { signal: controller.signal, skipAuth: true })
         setResult({
           kind: 'success',
           message: `A API respondeu com sucesso (HTTP ${response.status}).`,

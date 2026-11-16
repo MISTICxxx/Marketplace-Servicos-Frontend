@@ -18,7 +18,7 @@ function LoginPage() {
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const { login, loginDemo } = useAuth()
+  const { login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const returnPath = getAccountReturnPath(location.state?.from)
@@ -31,7 +31,7 @@ function LoginPage() {
     return nextErrors
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     const nextErrors = validate()
     setErrors(nextErrors)
@@ -40,22 +40,10 @@ function LoginPage() {
 
     setIsSubmitting(true)
     try {
-      login({ email })
-      navigate(returnPath, { replace: true, state: { notice: 'Acesso iniciado neste navegador.' } })
+      const account = await login({ email, password })
+      navigate(account.role === 'provider' ? '/painel-prestador' : returnPath, { replace: true, state: { notice: 'Acesso realizado.' } })
     } catch (error) {
-      setFormError(error.message || 'Não foi possível abrir seu perfil local.')
-      setIsSubmitting(false)
-    }
-  }
-
-  function handleDemoSignIn() {
-    setIsSubmitting(true)
-    setFormError('')
-    try {
-      loginDemo()
-      navigate(returnPath, { replace: true, state: { notice: 'Perfil de teste aberto.' } })
-    } catch (error) {
-      setFormError(error.message || 'Não foi possível preparar seu acesso.')
+      setFormError(error.response?.data?.error || error.message || 'Não foi possível entrar na sua conta.')
       setIsSubmitting(false)
     }
   }
@@ -68,7 +56,7 @@ function LoginPage() {
       <section aria-labelledby="login-form-title" className="account-form-card">
         <p className="eyebrow">Acesso à conta</p>
         <h2 id="login-form-title">Entrar</h2>
-        <p className="account-form-description">Entre com o e-mail do seu perfil ou continue com um perfil de teste.</p>
+        <p className="account-form-description">Entre com o e-mail e a senha da sua conta.</p>
         {formError && <p className="form-message form-message--error" role="alert">{formError}</p>}
 
         <form aria-busy={isSubmitting} noValidate onSubmit={handleSubmit}>
@@ -88,7 +76,7 @@ function LoginPage() {
           </FormField>
           <FormField
             error={errors.password}
-            hint="A senha não é conferida nem armazenada neste acesso local."
+            hint="Informe a senha cadastrada na sua conta."
             id="login-password"
             label="Senha"
             suffix={(
@@ -125,17 +113,13 @@ function LoginPage() {
             </Link>
           </div>
           <Button className="account-submit" disabled={isSubmitting} type="submit">
-            {isSubmitting && <LoadingSpinner label="Abrindo sessão local" />}
+            {isSubmitting && <LoadingSpinner label="Entrando na sua conta" />}
             {isSubmitting ? 'Entrando…' : 'Entrar'}
           </Button>
         </form>
 
-        <div className="account-divider"><span>ou</span></div>
-        <Button className="account-submit" disabled={isSubmitting} onClick={handleDemoSignIn} variant="secondary">
-          Continuar com perfil de teste
-        </Button>
         <p className="account-switch">
-          Ainda não tem perfil local?{' '}
+          Ainda não tem conta?{' '}
           <Link
             className="text-link"
             state={location.state?.from ? { from: location.state.from } : undefined}

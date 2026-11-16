@@ -28,7 +28,7 @@ function MyAccountPage() {
     setValues(getEditableFields(user))
     setErrors({})
     setFormError('')
-    setFeedback('')
+    setFeedback('Alterações salvas na sua conta.')
     setIsEditing(true)
   }
 
@@ -39,20 +39,20 @@ function MyAccountPage() {
     setIsEditing(false)
   }
 
-  function handleSave(event) {
+  async function handleSave(event) {
     event.preventDefault()
     const nextErrors = {}
     if (!values.name.trim()) nextErrors.name = 'Informe um nome de exibição.'
     setErrors(nextErrors)
-    setFeedback('')
+    setFeedback('Alterações salvas na sua conta.')
     if (Object.keys(nextErrors).length) return
 
     setIsSaving(true)
     try {
-      const savedUser = updateProfile(values)
+      const savedUser = await updateProfile(values)
       setValues(getEditableFields(savedUser))
       setIsEditing(false)
-      setFeedback('Alterações salvas neste navegador.')
+      setFeedback('Alterações salvas na sua conta.')
     } catch (error) {
       setFormError(error.message || 'Não foi possível salvar as alterações locais.')
     } finally {
@@ -67,9 +67,9 @@ function MyAccountPage() {
   return (
     <section className="personal-account page-container page-section" aria-labelledby="personal-account-title">
       <header className="page-heading personal-account-heading">
-        <p className="eyebrow">Minha conta · dados locais</p>
+        <p className="eyebrow">{user.role === 'provider' ? 'Conta profissional' : 'Minha conta'}</p>
         <h1 id="personal-account-title">Seu perfil no Fechou!</h1>
-        <p>Confira seus dados de apresentação. Este perfil pessoal não configura serviços profissionais nesta etapa.</p>
+        <p>{user.role === 'provider' ? 'Atualize seus dados de contato e apresentação. Para editar o anúncio que aparece aos clientes, use o painel profissional.' : 'Confira seus dados de apresentação e contato.'}</p>
       </header>
 
       <div className="personal-account-layout">
@@ -79,7 +79,7 @@ function MyAccountPage() {
               {getInitials(user.name)}
             </span>
             <div>
-              <p className="account-receipt-label">PERFIL PESSOAL</p>
+              <p className="account-receipt-label">{user.role === 'provider' ? 'DADOS DA CONTA PROFISSIONAL' : 'PERFIL PESSOAL'}</p>
               <h2 id="personal-profile-heading">{user.name}</h2>
               <p className="personal-email">{user.email}</p>
             </div>
@@ -109,10 +109,10 @@ function MyAccountPage() {
               <FormField hint="Opcional · até 300 caracteres." id="profile-bio" label="Sobre você" required={false}>
                 <textarea maxLength={300} onChange={(event) => updateValue('bio', event.target.value)} rows="4" value={values.bio} />
               </FormField>
-              <p className="profile-readonly-email"><span>E-mail da conta</span><strong>{user.email}</strong><small>A confirmação de e-mail estará disponível em uma versão conectada.</small></p>
+              <p className="profile-readonly-email"><span>E-mail da conta</span><strong>{user.email}</strong><small>O e-mail não pode ser alterado nesta versão.</small></p>
               <div className="profile-edit-actions">
                 <Button disabled={isSaving} type="submit">
-                  {isSaving && <LoadingSpinner label="Salvando perfil local" />}
+                  {isSaving && <LoadingSpinner label="Salvando perfil" />}
                   {isSaving ? 'Salvando…' : 'Salvar alterações'}
                 </Button>
                 <Button disabled={isSaving} onClick={cancelEditing} variant="secondary">Cancelar</Button>
@@ -135,10 +135,10 @@ function MyAccountPage() {
         </section>
 
         <aside className="account-local-note" aria-label="Sobre seus dados de conta">
-          <p className="account-receipt-label">ARMAZENAMENTO LOCAL</p>
-          <h2>Seus dados, neste navegador.</h2>
-          <p>A sessão permanece aberta enquanto esta aba estiver ativa. Você pode encerrá-la pelo menu ou pelo botão de sair.</p>
-          <p>Autenticação e proteção de dados dependem da conexão com o servidor.</p>
+          <p className="account-receipt-label">DADOS DA CONTA</p>
+          <h2>Seus dados de conta.</h2>
+          <p>Sua sessão é autenticada pela API. Você pode encerrá-la pelo menu ou pelo botão de sair.</p>
+          <p>Seu perfil é salvo no backend do Fechou!.</p>
         </aside>
       </div>
     </section>

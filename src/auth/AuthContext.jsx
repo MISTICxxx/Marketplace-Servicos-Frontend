@@ -1,75 +1,82 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
 import AuthContext from './authContext.js'
 import authService from '../services/authService.js'
 
 function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => authService.getCurrentUser())
-  const [logoutPending, setLogoutPending] = useState(false)
-  const logoutTimerRef = useRef(null)
-  const location = useLocation()
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [sessionError, setSessionError] = useState('')
+  const [sessionRetry, setSessionRetry] = useState(0)
 
   useEffect(() => {
-    if (!logoutPending || location.pathname !== '/') return
-
-    logoutTimerRef.current = window.setTimeout(() => {
-      authService.logout()
+    let active = true
+    authService.getCurrentUser().then((currentUser) => {
+      if (active) {
+        setUser(currentUser)
+        setSessionError('')
+      }
+    }).catch((error) => {
+      if (!active) return
       setUser(null)
-      setLogoutPending(false)
-      logoutTimerRef.current = null
-    }, 0)
-  }, [location.pathname, logoutPending])
+      const status = error.response?.status
+      if (!error.response) {
+        setSessionError('Não foi possível conectar para validar sua sessão. Verifique a conexão e tente novamente.')
+      } else if (status >= 500) {
+        setSessionError('O serviço de autenticação está indisponível. Tente validar sua sessão novamente.')
+      } else if (status === 403) {
+        setSessionError('Sua sessão não pôde ser validada para esta conta. Tente novamente ou entre em outra conta.')
+      } else {
+        setSessionError('Não foi possível validar sua sessão. Tente novamente ou entre em outra conta.')
+      }
+    }).finally(() => {
+      if (active) setLoading(false)
+    })
+    return () => { active = false }
+  }, [sessionRetry])
 
-  function cancelPendingLogout() {
-    if (logoutTimerRef.current !== null) {
-      window.clearTimeout(logoutTimerRef.current)
-      logoutTimerRef.current = null
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null)
+      setSessionError('')
     }
-    setLogoutPending(false)
-  }
+    window.addEventListener('fechou:unauthorized', handleUnauthorized)
+    return () => window.removeEventListener('fechou:unauthorized', handleUnauthorized)
+  }, [])
 
-  function createAccount(details) {
-    const account = authService.createAccount(details)
-    cancelPendingLogout()
+  const retrySession = useCallback(() => setSessionRetry((current) => current + 1), [])
+
+  async function createAccount(details) {
+    const account = await authService.createAccount(details)
     setUser(account)
+    setSessionError('')
     return account
   }
 
-  function login(details) {
-    const account = authService.signIn(details)
-    cancelPendingLogout()
+  async function login(details) {
+    const account = await authService.signIn(details)
     setUser(account)
+    setSessionError('')
     return account
   }
 
-  function loginDemo() {
-    const account = authService.signInDemo()
-    cancelPendingLogout()
-    setUser(account)
-    return account
-  }
-
-  function updateProfile(changes) {
+  async function updateProfile(changes) {
     if (!user) throw new Error('Entre para editar seu perfil.')
-    const account = authService.updateProfile(user.id, changes)
+    const account = await authService.updateProfile(changes)
     setUser(account)
     return account
   }
 
   const logout = useCallback(() => {
-    setLogoutPending(true)
+    void authService.logout().catch(() => {})
+    setUser(null)
+    setSessionError('')
   }, [])
 
-  const value = {
-    createAccount,
-    login,
-    loginDemo,
-    logout,
-    updateProfile,
-    user,
-  }
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ createAccount, loading, login, logout, retrySession, sessionError, updateProfile, user }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export { AuthProvider }
