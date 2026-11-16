@@ -1,61 +1,61 @@
-import mockProviders from '../data/mockProviders.js'
 import serviceCategories from '../data/serviceCategories.js'
+import api from './api.js'
 
-const ignoredSearchWords = new Set(['a', 'as', 'de', 'do', 'da', 'das', 'dos', 'e', 'em', 'minha', 'meu', 'minhas', 'meus', 'o', 'os', 'para', 'por', 'um', 'uma', 'uns', 'umas'])
-
-/** Normaliza espaços, caixa e diacríticos para pesquisas em português. */
-export function normalizeSearchText(value = '') {
-  return String(value)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('pt-BR')
-    .trim()
-    .replace(/\s+/g, ' ')
+function normalizeProvider(provider) {
+  return {
+    ...provider,
+    ...(provider.active === undefined ? {} : {
+      active: provider.active === true || provider.active === 1 || provider.active === '1',
+    }),
+    bio: provider.bio || provider.summary || '',
+    services: (provider.services || []).map((service) => ({ ...service, priceFrom: Number(service.priceFrom) || 0 })),
+    isCustom: true,
+  }
 }
 
-function getSearchableText(provider) {
-  const categoryNames = provider.categories
-    .map((categoryId) => serviceCategories.find((category) => category.id === categoryId)?.name ?? '')
-  const serviceNames = provider.services.map((service) => service.name)
-
-  return normalizeSearchText([
-    provider.name,
-    provider.specialty,
-    provider.summary,
-    provider.bio,
-    ...categoryNames,
-    ...serviceNames,
-    ...provider.neighborhoods,
-  ].join(' '))
+export async function getProviders({ query = '', category = '', neighborhood = '' } = {}) {
+  const { data } = await api.get('/providers', { params: { q: query, category, neighborhood }, skipAuth: true })
+  return data.data.map(normalizeProvider)
 }
 
-/** Lista prestadores locais com busca textual e filtros combináveis. */
-export function getProviders({ query = '', category = '', neighborhood = '' } = {}) {
-  const searchTerms = normalizeSearchText(query)
-    .split(' ')
-    .filter((word) => word.length > 1 && !ignoredSearchWords.has(word))
-
-  return mockProviders.filter((provider) => {
-    const matchesCategory = !category || provider.categories.includes(category)
-    const matchesNeighborhood = !neighborhood || provider.neighborhoods.includes(neighborhood)
-    const searchableText = searchTerms.length ? getSearchableText(provider) : ''
-    const matchesQuery = searchTerms.every((word) => searchableText.includes(word))
-
-    return matchesCategory && matchesNeighborhood && matchesQuery
-  })
+export async function getProviderById(providerId) {
+  try {
+    const { data } = await api.get(`/providers/${encodeURIComponent(providerId)}`, { skipAuth: true })
+    return normalizeProvider(data.provider)
+  } catch (error) {
+    if (error.response?.status === 404) return null
+    throw error
+  }
 }
 
-/** Busca um prestador pelo identificador estável usado nas rotas. */
-export function getProviderById(providerId) {
-  return mockProviders.find((provider) => provider.id === providerId)
+export async function getMyProviderProfile() {
+  try {
+    const { data } = await api.get('/providers/me')
+    return normalizeProvider(data.provider)
+  } catch (error) {
+    if (error.response?.status === 404) return null
+    throw error
+  }
 }
 
-/** Devolve bairros presentes nos registros locais, em ordem alfabética. */
-export function getNeighborhoodOptions() {
-  return [...new Set(mockProviders.flatMap((provider) => provider.neighborhoods))]
+export async function getNeighborhoodOptions() {
+  const providers = await getProviders()
+  return [...new Set(providers.flatMap((provider) => provider.neighborhoods || []))]
     .sort((first, second) => first.localeCompare(second, 'pt-BR'))
 }
 
 export function getServiceCategories() {
   return serviceCategories
+}
+
+export async function saveProviderAd(ad) {
+  const { data } = await api.put('/providers/me', {
+    specialty: ad.specialty,
+    summary: ad.summary,
+    categories: ad.categories,
+    neighborhoods: ad.neighborhoods,
+    services: ad.services,
+    active: typeof ad.active === 'boolean' ? ad.active : true,
+  })
+  return normalizeProvider(data.provider)
 }

@@ -1,12 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, createSearchParams, useNavigate } from 'react-router-dom'
 import ProviderCard from '../components/ProviderCard.jsx'
 import ProviderSearch from '../components/ProviderSearch.jsx'
+import Button from '../components/common/Button.jsx'
 import Card from '../components/common/Card.jsx'
 import serviceCategories from '../data/serviceCategories.js'
 import { getProviders } from '../services/providerService.js'
-
-const featuredProviders = getProviders().slice(0, 4)
 
 const steps = [
   {
@@ -28,7 +27,26 @@ const steps = [
 
 function Home() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [featuredResult, setFeaturedResult] = useState({ status: 'loading', providers: [] })
+  const [retryCount, setRetryCount] = useState(0)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    let active = true
+    getProviders().then((providers) => {
+      if (!active) return
+      const featuredProviders = providers.slice(0, 4)
+      setFeaturedResult({ status: featuredProviders.length ? 'success' : 'empty', providers: featuredProviders })
+    }).catch(() => {
+      if (active) setFeaturedResult({ status: 'error', providers: [] })
+    })
+    return () => { active = false }
+  }, [retryCount])
+
+  function retryFeaturedProviders() {
+    setFeaturedResult({ status: 'loading', providers: [] })
+    setRetryCount((current) => current + 1)
+  }
 
   function handleSearch(value) {
     const query = value.trim()
@@ -117,15 +135,27 @@ function Home() {
               <p className="eyebrow">Uma amostra do diretório</p>
               <h2 id="featured-title">Prestadores em destaque</h2>
               <p>Uma amostra da apresentação dos perfis disponíveis no diretório.</p>
-              <p className="provider-example-note">Perfis e valores são ilustrativos.</p>
+              <p className="provider-example-note">Os perfis exibidos são cadastrados pelos prestadores.</p>
             </div>
             <Link className="section-link" to="/servicos">Ver todos <span aria-hidden="true">→</span></Link>
           </div>
           <div className="provider-grid provider-grid--featured">
-            {featuredProviders.map((provider) => (
+            {featuredResult.status === 'success' && featuredResult.providers.map((provider) => (
               <ProviderCard key={provider.id} provider={provider} />
             ))}
           </div>
+          {featuredResult.status === 'loading' && <p role="status">Carregando prestadores em destaque…</p>}
+          {featuredResult.status === 'empty' && <p role="status">Ainda não há prestadores disponíveis para destacar.</p>}
+          {featuredResult.status === 'error' && (
+            <div>
+              <p className="form-message form-message--error" role="alert">
+                Não foi possível carregar os prestadores em destaque. Tente novamente.
+              </p>
+              <Button onClick={retryFeaturedProviders} variant="secondary">
+                Tentar novamente
+              </Button>
+            </div>
+          )}
         </div>
       </section>
 
