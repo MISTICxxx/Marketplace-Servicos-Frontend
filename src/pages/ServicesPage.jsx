@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import ProviderCard from '../components/ProviderCard.jsx'
 import ProviderSearch from '../components/ProviderSearch.jsx'
@@ -6,19 +6,36 @@ import Button from '../components/common/Button.jsx'
 import { getNeighborhoodOptions, getProviders, getServiceCategories } from '../services/providerService.js'
 
 const categories = getServiceCategories()
-const neighborhoods = getNeighborhoodOptions()
 
 function ServicesPage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [providers, setProviders] = useState([])
+  const [neighborhoods, setNeighborhoods] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const location = useLocation()
   const query = searchParams.get('q') ?? ''
   const category = searchParams.get('categoria') ?? ''
   const neighborhood = searchParams.get('bairro') ?? ''
 
-  const providers = useMemo(
-    () => getProviders({ query, category, neighborhood }),
-    [category, neighborhood, query],
-  )
+  useEffect(() => {
+    let active = true
+    Promise.resolve().then(() => {
+      if (!active) return null
+      setLoading(true)
+      setLoadError('')
+      return Promise.all([getProviders({ query, category, neighborhood }), getNeighborhoodOptions()])
+    }).then((result) => {
+      if (!result) return
+      const [results, options] = result
+      if (!active) return
+      setProviders(results)
+      setNeighborhoods(options)
+    }).catch((error) => {
+      if (active) setLoadError(error.response?.data?.error || 'Não foi possível carregar os prestadores.')
+    }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [category, neighborhood, query])
 
   function updateFilter(name, value) {
     setSearchParams((currentParams) => {
@@ -102,7 +119,7 @@ function ServicesPage() {
         <p aria-live="polite" aria-atomic="true">{resultLabel}</p>
       </div>
 
-      {providers.length ? (
+      {loadError ? <p className="form-message form-message--error" role="alert">{loadError}</p> : loading ? <p role="status">Carregando prestadores…</p> : providers.length ? (
         <div className="provider-grid">
           {providers.map((provider) => (
             <ProviderCard
@@ -122,7 +139,7 @@ function ServicesPage() {
       )}
 
       <p className="directory-footnote">
-        Os perfis e valores são ilustrativos. <Link className="text-link" to="/sobre">Conheça o Fechou!</Link>
+        Prestadores e informações cadastrados no Fechou!. <Link className="text-link" to="/sobre">Conheça o Fechou!</Link>
       </p>
     </section>
   )

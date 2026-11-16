@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import ProviderAvatar from '../components/ProviderAvatar.jsx'
 import Card from '../components/common/Card.jsx'
@@ -16,7 +17,20 @@ function getDirectoryReturnPath(requestedPath) {
 function ProviderProfilePage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
-  const provider = getProviderById(id)
+  const [provider, setProvider] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+    Promise.resolve().then(() => {
+      if (!active) return null
+      setLoading(true)
+      return getProviderById(id)
+    }).then((data) => { if (active) setProvider(data) }).catch(() => { if (active) setProvider(null) }).finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id])
+
+  if (loading) return <p className="page-container page-section" role="status">Carregando perfil…</p>
 
   if (!provider) {
     return (
@@ -45,7 +59,7 @@ function ProviderProfilePage() {
           size="large"
         />
         <div className="profile-identity">
-          <p className="eyebrow">Perfil de exemplo · Curitiba, PR</p>
+          <p className="eyebrow">{provider.isCustom ? 'Prestador independente' : 'Perfil de exemplo'}{provider.neighborhoods?.length ? ` · ${provider.neighborhoods[0]}` : ''}</p>
           <h1>{provider.name}</h1>
           <p className="profile-specialty">{provider.specialty}</p>
         </div>
@@ -98,7 +112,7 @@ function ProviderProfilePage() {
           </Card>
 
           <Card className="profile-coverage-card">
-            <p className="eyebrow">Curitiba · PR</p>
+            <p className="eyebrow">{provider.neighborhoods?.[0] ?? 'Região de atendimento'}</p>
             <h2>Regiões de atendimento</h2>
             <ul className="neighborhood-list">
               {provider.neighborhoods.map((neighborhood) => (
