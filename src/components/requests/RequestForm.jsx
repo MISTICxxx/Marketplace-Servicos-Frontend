@@ -116,23 +116,23 @@ function RequestForm({ mode = 'create', request = null, onSaved }) {
     if (validate()) setStep('review')
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     if (isSubmitting) return
     setIsSubmitting(true)
     setFormError('')
     try {
       if (isEditing) {
-        const updatedRequest = requestService.update(user.id, request.id, values)
+        const updatedRequest = await requestService.update(user.id, request.id, values)
         onSaved(updatedRequest)
       } else {
-        const createdRequest = requestService.create(user.id, values)
+        const createdRequest = await requestService.create(user.id, values)
         navigate(`/meus-pedidos/${createdRequest.id}`, {
           replace: true,
-          state: { notice: 'Pedido salvo neste navegador. Nenhum prestador foi notificado.' },
+          state: { notice: 'Pedido salvo na sua conta.' },
         })
       }
     } catch (error) {
-      setFormError(error.message || 'Não foi possível salvar a solicitação local.')
+      setFormError(error.message || 'Não foi possível salvar o pedido.')
       setIsSubmitting(false)
     }
   }
@@ -169,7 +169,7 @@ function RequestForm({ mode = 'create', request = null, onSaved }) {
           <div className="request-form-section">
             <p className="request-section-kicker">O serviço</p>
             <h2 id="request-form-title">Conte o que precisa ser resolvido.</h2>
-            <p className="request-section-copy">O pedido será salvo neste navegador. Não inclua dados pessoais ou endereço completo.</p>
+            <p className="request-section-copy">O pedido será salvo na sua conta e ficará disponível para você acompanhar.</p>
             <FormField error={errors.title} hint="Um resumo curto ajuda a identificar o pedido." id="request-title" label="Título do pedido">
               <input autoComplete="off" maxLength={100} onChange={(event) => updateValue('title', event.target.value)} value={values.title} />
             </FormField>

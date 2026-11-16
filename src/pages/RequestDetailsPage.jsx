@@ -7,11 +7,12 @@ import RequestForm from '../components/requests/RequestForm.jsx'
 import requestService from '../services/requestService.js'
 import { formatDesiredDate, formatRequestBudget, formatRequestDate, getCategoryName, statusLabels } from '../utils/requestFormatting.js'
 
-function loadRequest(ownerId, requestId) {
+async function loadRequest(ownerId, requestId) {
   try {
-    return { request: requestService.getById(ownerId, requestId), error: '' }
+    const request = await requestService.getById(ownerId, requestId)
+    return { request, error: request ? '' : 'Solicitação não encontrada.', loading: false }
   } catch (error) {
-    return { request: null, error: error.message || 'Não foi possível ler a solicitação local.' }
+    return { request: null, error: error.message || 'Não foi possível carregar a solicitação.' }
   }
 }
 
@@ -26,13 +27,19 @@ function RequestDetailsPage() {
   const { requestId } = useParams()
   const { user } = useAuth()
   const location = useLocation()
-  const [result, setResult] = useState(() => loadRequest(user.id, requestId))
+  const [result, setResult] = useState({ request: null, error: '', loading: true })
   const [editing, setEditing] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [actionError, setActionError] = useState('')
   const [notice, setNotice] = useState(location.state?.notice ?? '')
   const dialogRef = useRef(null)
   const request = result.request
+
+  useEffect(() => {
+    let active = true
+    loadRequest(user.id, requestId).then((loaded) => { if (active) setResult(loaded) })
+    return () => { active = false }
+  }, [requestId, user.id])
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -51,12 +58,12 @@ function RequestDetailsPage() {
     }
     setResult({ request: updatedRequest, error: '' })
     setEditing(false)
-    setNotice('Alterações salvas neste navegador.')
+    setNotice('Alterações salvas na sua conta.')
   }
 
-  function handleCancelRequest() {
+  async function handleCancelRequest() {
     try {
-      const cancelled = requestService.cancel(user.id, request.id)
+      const cancelled = await requestService.cancel(user.id, request.id)
       setResult({ request: cancelled, error: '' })
     setNotice('Pedido cancelado. Os dados e o histórico foram mantidos.')
       setActionError('')
@@ -77,6 +84,8 @@ function RequestDetailsPage() {
       </section>
     )
   }
+
+  if (result.loading) return <p className="page-container page-section" role="status">Carregando pedido…</p>
 
   if (!request) {
     return (
@@ -130,7 +139,7 @@ function RequestDetailsPage() {
             </Card>
 
             <Card className="request-detail-card request-history-card">
-              <p className="request-section-kicker">Registro local</p>
+              <p className="request-section-kicker">Histórico do pedido</p>
               <h2>Histórico do pedido</h2>
               <ol className="request-history-list">
                 {request.history.map((event) => (
@@ -155,7 +164,7 @@ function RequestDetailsPage() {
                 <div><dt>Criado</dt><dd>{formatRequestDate(request.createdAt, true)}</dd></div>
                 <div><dt>Atualizado</dt><dd>{formatRequestDate(request.updatedAt, true)}</dd></div>
               </dl>
-              <p className="request-receipt-footnote">Salvo neste navegador · sem envio a prestadores</p>
+              <p className="request-receipt-footnote">Salvo na sua conta.</p>
             </Card>
             {request.status === 'open' ? (
               <div className="request-detail-actions">
@@ -179,7 +188,7 @@ function RequestDetailsPage() {
       >
         <p className="request-section-kicker">Confirmação</p>
         <h2 id="cancel-request-title">Cancelar esta solicitação?</h2>
-        <p id="cancel-request-description">Ela deixará de estar aberta, mas seus dados e o histórico permanecerão guardados neste navegador. Esta ação não poderá ser desfeita.</p>
+        <p id="cancel-request-description">Ela deixará de estar aberta, mas seus dados e o histórico permanecerão salvos na sua conta. Esta ação não poderá ser desfeita.</p>
         {actionError && <p className="form-message form-message--error" role="alert">{actionError}</p>}
         <div className="request-form-actions">
           <Button onClick={() => { dialogRef.current?.close(); setConfirmCancel(false) }} variant="secondary">Manter aberta</Button>

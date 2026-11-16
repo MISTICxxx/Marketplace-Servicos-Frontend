@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import useAuth from '../auth/useAuth.js'
 import Button from '../components/common/Button.jsx'
@@ -12,9 +12,9 @@ const filters = [
   { id: 'cancelled', label: 'Cancelados' },
 ]
 
-function loadRequests(userId) {
+async function loadRequests(userId) {
   try {
-    return { requests: requestService.listByUser(userId), error: '' }
+    return { requests: await requestService.listByUser(userId), error: '', loading: false }
   } catch (error) {
     return { requests: [], error: error.message || 'Não foi possível ler os pedidos locais.' }
   }
@@ -23,12 +23,19 @@ function loadRequests(userId) {
 function MyRequestsPage() {
   const { user } = useAuth()
   const [filter, setFilter] = useState('all')
-  const [result, setResult] = useState(() => loadRequests(user.id))
+  const [result, setResult] = useState({ requests: [], error: '', loading: true })
   const visibleRequests = result.requests.filter((request) => filter === 'all' || request.status === filter)
 
-  function reloadRequests() {
-    setResult(loadRequests(user.id))
+  async function reloadRequests() {
+    setResult((current) => ({ ...current, loading: true }))
+    setResult(await loadRequests(user.id))
   }
+
+  useEffect(() => {
+    let active = true
+    loadRequests(user.id).then((loaded) => { if (active) setResult(loaded) })
+    return () => { active = false }
+  }, [user.id])
 
   return (
     <section className="page-section page-container my-requests-page">

@@ -1,154 +1,68 @@
 import serviceCategories from '../data/serviceCategories.js'
+import api from './api.js'
 
-const REQUESTS_KEY = 'fechou.demo.requests.v1'
 const validCategoryIds = new Set(serviceCategories.map(({ id }) => id))
-
-function createId() {
-  return globalThis.crypto?.randomUUID?.()
-    ?? `pedido-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-}
-
-function nextTimestamp(previousValue) {
-  const previousTime = Date.parse(previousValue)
-  return new Date(Math.max(Date.now(), Number.isFinite(previousTime) ? previousTime + 1 : Date.now())).toISOString()
-}
-
-function readRequests() {
-  const savedRequests = window.localStorage.getItem(REQUESTS_KEY)
-  if (!savedRequests) return []
-
-  try {
-    const requests = JSON.parse(savedRequests)
-    if (!Array.isArray(requests)) throw new Error('Formato inválido')
-    return requests.filter((request) => (
-      request
-      && typeof request.id === 'string'
-      && typeof request.ownerId === 'string'
-      && Array.isArray(request.history)
-    ))
-  } catch {
-    throw new Error('Não foi possível ler os pedidos salvos neste navegador. Os dados não foram alterados.')
-  }
-}
-
-function saveRequests(requests) {
-  try {
-    window.localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests))
-  } catch {
-    throw new Error('Não foi possível salvar o pedido neste navegador. Verifique o espaço disponível e tente novamente.')
-  }
-}
-
-function requireOwnerId(ownerId) {
-  if (typeof ownerId !== 'string' || !ownerId.trim()) {
-    throw new Error('Entre na sua conta para continuar.')
-  }
-  return ownerId
-}
 
 function normalizeDetails(details) {
   const categoryId = String(details.categoryId ?? '')
   if (!validCategoryIds.has(categoryId)) throw new Error('Selecione uma categoria válida.')
-
-  const optionalText = (value) => String(value ?? '').trim() || null
-  const optionalAmount = (value) => {
+  const amount = (value) => {
     const normalized = String(value ?? '').trim()
     return normalized ? Number(normalized) : null
   }
-
   return {
     title: String(details.title ?? '').trim(),
     categoryId,
     description: String(details.description ?? '').trim(),
     city: String(details.city ?? '').trim(),
     region: String(details.region ?? '').trim(),
-    neighborhood: optionalText(details.neighborhood),
-    desiredDate: optionalText(details.desiredDate),
-    availability: optionalText(details.availability),
-    budgetMin: details.prefersProposals ? null : optionalAmount(details.budgetMin),
-    budgetMax: details.prefersProposals ? null : optionalAmount(details.budgetMax),
+    neighborhood: String(details.neighborhood ?? '').trim() || null,
+    desiredDate: String(details.desiredDate ?? '').trim() || null,
+    availability: String(details.availability ?? '').trim() || null,
+    budgetMin: details.prefersProposals ? null : amount(details.budgetMin),
+    budgetMax: details.prefersProposals ? null : amount(details.budgetMax),
     prefersProposals: Boolean(details.prefersProposals),
   }
 }
 
-function addHistory(request, event, description, createdAt = new Date().toISOString()) {
-  return {
-    ...request,
-    history: [...request.history, { id: createId(), event, description, createdAt }],
+async function listByUser() {
+  const { data } = await api.get('/requests')
+  return data.data
+}
+
+async function getById(_ownerId, requestId) {
+  try {
+    const { data } = await api.get(`/requests/${encodeURIComponent(requestId)}`)
+    return data.request
+  } catch (error) {
+    if (error.response?.status === 404) return null
+    throw error
   }
 }
 
-function listByUser(ownerId) {
-  const currentOwnerId = requireOwnerId(ownerId)
-  return readRequests()
-    .filter((request) => request.ownerId === currentOwnerId)
-    .sort((first, second) => second.createdAt.localeCompare(first.createdAt))
+async function getAnyById(requestId) {
+  return getById(null, requestId)
 }
 
-function getById(ownerId, requestId) {
-  const currentOwnerId = requireOwnerId(ownerId)
-  return readRequests().find((request) => (
-    request.id === requestId && request.ownerId === currentOwnerId
-  )) ?? null
+async function listOpen() {
+  const { data } = await api.get('/requests/open')
+  return data.data
 }
 
-function create(ownerId, details) {
-  const currentOwnerId = requireOwnerId(ownerId)
-  const now = new Date().toISOString()
-  const request = {
-    id: createId(),
-    ownerId: currentOwnerId,
-    ...normalizeDetails(details),
-    status: 'open',
-    createdAt: now,
-    updatedAt: now,
-    history: [{ id: createId(), event: 'created', description: 'Pedido registrado neste navegador.', createdAt: now }],
-  }
-  saveRequests([...readRequests(), request])
-  return request
+async function create(_ownerId, details) {
+  const { data } = await api.post('/requests', normalizeDetails(details))
+  return data.request
 }
 
-function update(ownerId, requestId, details) {
-  const currentOwnerId = requireOwnerId(ownerId)
-  const requests = readRequests()
-  const index = requests.findIndex((request) => request.id === requestId && request.ownerId === currentOwnerId)
-  if (index < 0) throw new Error('Solicitação não encontrada.')
-
-  const current = requests[index]
-  if (current.status !== 'open') throw new Error('Somente solicitações abertas podem ser editadas.')
-
-  const updatedAt = nextTimestamp(current.updatedAt)
-  const updated = addHistory({
-    ...current,
-    ...normalizeDetails(details),
-    updatedAt,
-  }, 'edited', 'Dados do pedido atualizados neste navegador.', updatedAt)
-  requests[index] = updated
-  saveRequests(requests)
-  return updated
+async function update(_ownerId, requestId, details) {
+  const { data } = await api.patch(`/requests/${encodeURIComponent(requestId)}`, normalizeDetails(details))
+  return data.request
 }
 
-function cancel(ownerId, requestId) {
-  const currentOwnerId = requireOwnerId(ownerId)
-  const requests = readRequests()
-  const index = requests.findIndex((request) => request.id === requestId && request.ownerId === currentOwnerId)
-  if (index < 0) throw new Error('Solicitação não encontrada.')
-
-  const current = requests[index]
-  if (current.status !== 'open') throw new Error('Esta solicitação já está cancelada.')
-
-  const updatedAt = nextTimestamp(current.updatedAt)
-  const cancelled = addHistory({
-    ...current,
-    status: 'cancelled',
-    updatedAt,
-  }, 'cancelled', 'Solicitação cancelada pela pessoa responsável.', updatedAt)
-  requests[index] = cancelled
-  saveRequests(requests)
-  return cancelled
+async function cancel(_ownerId, requestId) {
+  const { data } = await api.post(`/requests/${encodeURIComponent(requestId)}/cancel`)
+  return data.request
 }
 
-const requestService = { cancel, create, getById, listByUser, update }
-
-export { REQUESTS_KEY }
+const requestService = { cancel, create, getAnyById, getById, listByUser, listOpen, update }
 export default requestService
