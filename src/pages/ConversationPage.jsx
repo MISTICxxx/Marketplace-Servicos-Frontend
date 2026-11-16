@@ -5,19 +5,17 @@ import ProviderAvatar from '../components/ProviderAvatar.jsx'
 import Button from '../components/common/Button.jsx'
 import Card from '../components/common/Card.jsx'
 import conversationService, { MAX_MESSAGE_LENGTH } from '../services/conversationService.js'
-import { getProviderById } from '../services/providerService.js'
-import requestService from '../services/requestService.js'
 import { getCategoryName, statusLabels } from '../utils/requestFormatting.js'
 
-function loadConversation(ownerId, conversationId) {
+async function loadConversation(ownerId, conversationId) {
   try {
-    const conversation = conversationService.getById(ownerId, conversationId)
+    const conversation = await conversationService.getForParticipant(ownerId, conversationId)
     if (!conversation) return { conversation: null, error: '' }
-    const readConversation = conversationService.markRead(ownerId, conversationId) ?? conversation
+    const readConversation = await conversationService.markReadForParticipant(ownerId, conversationId) ?? conversation
     return {
       conversation: readConversation,
-      request: requestService.getById(ownerId, conversation.requestId),
-      provider: getProviderById(conversation.providerId) ?? null,
+      request: readConversation.request,
+      provider: readConversation.provider,
       error: '',
     }
   } catch (error) {
@@ -58,9 +56,9 @@ function groupMessages(messages) {
   return groups
 }
 
-function ConversationPage({ ownerId }) {
+function ConversationPage({ ownerId, role = 'customer' }) {
   const { conversationId } = useParams()
-  const [chat, setChat] = useState(() => loadConversation(ownerId, conversationId))
+  const [chat, setChat] = useState({ conversation: null, request: null, provider: null, error: '', loading: true })
   const [draft, setDraft] = useState('')
   const [actionError, setActionError] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -68,19 +66,26 @@ function ConversationPage({ ownerId }) {
   const messagesEndRef = useRef(null)
   const { state } = useLocation()
   const conversation = chat.conversation
+  const isProvider = role === 'provider'
   const isReadOnly = !chat.request || chat.request.status !== 'open' || !chat.provider
+
+  useEffect(() => {
+    let active = true
+    loadConversation(ownerId, conversationId).then((loaded) => { if (active) setChat({ ...loaded, loading: false }) })
+    return () => { active = false }
+  }, [conversationId, ownerId])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
   }, [conversation?.messages.length])
 
-  function runAction(action, clearDraft = false) {
+  async function runAction(action, clearDraft = false) {
     if (actionLockRef.current) return
     actionLockRef.current = true
     setIsSending(true)
     setActionError('')
     try {
-      const updated = action()
+      const updated = await action()
       setChat((current) => ({ ...current, conversation: updated }))
       if (clearDraft) setDraft('')
     } catch (error) {
@@ -103,13 +108,10 @@ function ConversationPage({ ownerId }) {
       setActionError(`A mensagem deve ter até ${MAX_MESSAGE_LENGTH} caracteres.`)
       return
     }
-    runAction(() => conversationService.sendMessage(ownerId, conversation.id, trimmedDraft), true)
+    void runAction(() => conversationService.sendAsParticipant(ownerId, conversation.id, trimmedDraft), true)
   }
 
-  function handleDemoReply() {
-    if (!conversation || isReadOnly) return
-    runAction(() => conversationService.addDemoReply(ownerId, conversation.id))
-  }
+  if (chat.loading) return <p className="page-container page-section" role="status">Carregando conversa…</p>
 
   if (chat.error) {
     return (
@@ -159,13 +161,13 @@ function ConversationPage({ ownerId }) {
             : <span aria-hidden="true" className="provider-avatar">?</span>}
           <div className="conversation-chat-identity">
             <p className="eyebrow">Conversa</p>
-            <h1 id="conversation-title">{providerName}</h1>
-            <p>{chat.provider?.specialty ?? 'Perfil indisponível'}</p>
+            <h1 id="conversation-title">{isProvider ? 'Atendimento ao cliente' : providerName}</h1>
+            <p>{isProvider ? `Você · ${chat.provider?.specialty ?? 'Prestador'}` : (chat.provider?.specialty ?? 'Perfil indisponível')}</p>
           </div>
           <div className="conversation-order-context">
             <span>Pedido relacionado</span>
             {chat.request
-              ? <Link to={`/meus-pedidos/${chat.request.id}`}>{chat.request.title}</Link>
+              ? <Link to={isProvider ? '/painel-prestador' : `/meus-pedidos/${chat.request.id}`}>{chat.request.title}</Link>
               : <strong>Pedido indisponível</strong>}
             {chat.request && <small>{getCategoryName(chat.request.categoryId)} · {statusLabels[chat.request.status] ?? 'Indisponível'}</small>}
           </div>
@@ -183,14 +185,14 @@ function ConversationPage({ ownerId }) {
             <div className="conversation-message-group" key={group.key}>
               <p className="conversation-day-divider"><span>{group.label}</span></p>
               {group.messages.map((message) => {
-                const isMine = message.senderType === 'customer'
+                const isMine = message.senderId === ownerId
                 return (
                   <article
-                    aria-label={`${isMine ? 'Sua mensagem' : 'Resposta de exemplo'}, ${formatTime(message.sentAt)}`}
-                    className={`conversation-message${isMine ? ' conversation-message--mine' : ' conversation-message--provider'}`}
+                    aria-label={`${isMine ? 'Sua mensagem' : 'Mensagem recebida'}, ${formatTime(message.sentAt)}`}
+                    className={`conversation-message${isMine ? ' conversation-message--sent' : ' conversation-message--received'}`}
                     key={message.id}
                   >
-                    {!isMine && <span className="conversation-message-author">{message.isDemo ? 'Resposta de exemplo' : providerName}</span>}
+                    {!isMine && <span className="conversation-message-author">{message.isDemo ? 'Mensagem recebida' : isProvider ? 'Cliente' : providerName}</span>}
                     <p>{message.text}</p>
                     <time dateTime={message.sentAt}>{formatTime(message.sentAt)}</time>
                   </article>
@@ -202,14 +204,6 @@ function ConversationPage({ ownerId }) {
         </div>
 
         <footer className="conversation-compose-area">
-          {!isReadOnly && (
-            <div className="conversation-demo-reply-row">
-              <span>Visualize o outro lado da conversa.</span>
-              <Button disabled={isSending} onClick={handleDemoReply} variant="secondary">
-                Inserir resposta de exemplo
-              </Button>
-            </div>
-          )}
           {actionError && <p className="conversation-feedback conversation-feedback--error" id="conversation-action-error" role="alert">{actionError}</p>}
           <form className="conversation-compose-form" onSubmit={handleSend}>
             <label className="visually-hidden" htmlFor="conversation-message">Escreva sua mensagem</label>
@@ -241,7 +235,7 @@ function ConversationPage({ ownerId }) {
               </Button>
             </div>
           </form>
-          <p className="conversation-local-note">Mensagens salvas neste navegador; não são enviadas ao prestador.</p>
+          <p className="conversation-local-note">Mensagens armazenadas na sua conta.</p>
         </footer>
       </Card>
     </section>
@@ -251,7 +245,7 @@ function ConversationPage({ ownerId }) {
 function ConversationRoute() {
   const { user } = useAuth()
   const { conversationId } = useParams()
-  return <ConversationPage key={conversationId} ownerId={user.id} />
+  return <ConversationPage key={conversationId} ownerId={user.id} role={user.role ?? 'customer'} />
 }
 
 export default ConversationRoute

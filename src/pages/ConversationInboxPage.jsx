@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import useAuth from '../auth/useAuth.js'
 import ProviderAvatar from '../components/ProviderAvatar.jsx'
@@ -8,16 +8,17 @@ import conversationService from '../services/conversationService.js'
 import { getProviderById } from '../services/providerService.js'
 import requestService from '../services/requestService.js'
 import { getCategoryName, statusLabels } from '../utils/requestFormatting.js'
+import ProviderConversationsPage from './ProviderConversationsPage.jsx'
 
-function loadInbox(ownerId) {
+async function loadInbox() {
   try {
     return {
-      conversations: conversationService.listByUser(ownerId),
-      requests: requestService.listByUser(ownerId),
+      conversations: await conversationService.listByUser(),
+      requests: await requestService.listByUser(),
       error: '',
     }
   } catch (error) {
-    return { conversations: [], requests: [], error: error.message || 'Não foi possível carregar os dados locais.' }
+    return { conversations: [], requests: [], error: error.message || 'Não foi possível carregar os dados da sua conta.' }
   }
 }
 
@@ -36,12 +37,20 @@ function getUnreadCount(conversation) {
 }
 
 function StartConversationPanel({ providerId, ownerId, requests, onOpen }) {
-  const provider = getProviderById(providerId)
+  const [provider, setProvider] = useState(null)
+  const [providerLoading, setProviderLoading] = useState(true)
   const openRequests = requests.filter((request) => request.status === 'open')
   const [requestId, setRequestId] = useState(openRequests[0]?.id ?? '')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  useEffect(() => {
+    let active = true
+    getProviderById(providerId).then((result) => { if (active) setProvider(result) }).catch(() => { if (active) setProvider(null) }).finally(() => { if (active) setProviderLoading(false) })
+    return () => { active = false }
+  }, [providerId])
+
+  if (providerLoading) return <Card className="conversation-start-panel" role="status">Carregando perfil…</Card>
   if (!provider) {
     return (
       <Card className="conversation-start-panel" role="status">
@@ -52,15 +61,16 @@ function StartConversationPanel({ providerId, ownerId, requests, onOpen }) {
     )
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (!requestId || isSubmitting) return
     setIsSubmitting(true)
     setError('')
     try {
-      const result = conversationService.createOrGet(
+      const selectedRequestId = openRequests.some((request) => request.id === requestId) ? requestId : openRequests[0]?.id
+      const result = await conversationService.createOrGet(
         ownerId,
-        requestId,
+        selectedRequestId,
         provider.id,
       )
       onOpen(result)
@@ -86,7 +96,7 @@ function StartConversationPanel({ providerId, ownerId, requests, onOpen }) {
           <select
             id="conversation-request"
             onChange={(event) => setRequestId(event.target.value)}
-            value={requestId}
+            value={openRequests.some((request) => request.id === requestId) ? requestId : openRequests[0]?.id ?? ''}
           >
             {openRequests.map((request) => (
               <option key={request.id} value={request.id}>{request.title} · {getCategoryName(request.categoryId)}</option>
@@ -109,9 +119,13 @@ function StartConversationPanel({ providerId, ownerId, requests, onOpen }) {
 
 function ConversationInboxPage() {
   const { user } = useAuth()
+  return user.role === 'provider' ? <ProviderConversationsPage /> : <CustomerConversationInboxPage user={user} />
+}
+
+function CustomerConversationInboxPage({ user }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [inbox, setInbox] = useState(() => loadInbox(user.id))
+  const [inbox, setInbox] = useState({ conversations: [], requests: [], error: '', loading: true })
   const selectedProvider = searchParams.get('prestador')
   const requestsById = new Map(inbox.requests.map((request) => [request.id, request]))
   const groups = new Map()
@@ -123,10 +137,24 @@ function ConversationInboxPage() {
     groups.set(conversation.requestId, group)
   })
 
+  async function refreshInbox() {
+    try {
+      setInbox({ ...(await loadInbox()), loading: false })
+    } catch (error) {
+      setInbox({ conversations: [], requests: [], error: error.response?.data?.error || error.message || 'Não foi possível carregar a caixa de entrada.', loading: false })
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+    loadInbox().then((loaded) => { if (active) setInbox({ ...loaded, loading: false }) })
+    return () => { active = false }
+  }, [user.id])
+
   function handleOpen({ conversation, created }) {
     navigate(`/conversas/${conversation.id}`, {
       state: { notice: created
-        ? 'Conversa criada neste navegador.'
+        ? 'Conversa criada.'
         : 'Você voltou à conversa já existente para este pedido.' },
     })
   }
@@ -157,11 +185,11 @@ function ConversationInboxPage() {
         />
       )}
 
-      {inbox.error ? (
+      {inbox.loading ? <p role="status">Carregando conversas…</p> : inbox.error ? (
         <Card className="conversation-empty-state" role="alert">
           <h2>Não foi possível abrir sua caixa de entrada.</h2>
           <p>{inbox.error}</p>
-          <Button onClick={() => setInbox(loadInbox(user.id))} variant="secondary">Tentar novamente</Button>
+          <Button onClick={() => void refreshInbox()} variant="secondary">Tentar novamente</Button>
         </Card>
       ) : inbox.conversations.length === 0 ? (
         <Card className="conversation-empty-state">
@@ -186,7 +214,7 @@ function ConversationInboxPage() {
               </header>
               <div className="conversation-list">
                 {group.conversations.map((conversation) => {
-                  const provider = getProviderById(conversation.providerId)
+                  const provider = conversation.provider
                   const lastMessage = conversation.messages.at(-1)
                   const unreadCount = getUnreadCount(conversation)
                   return (
