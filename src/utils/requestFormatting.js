@@ -1,6 +1,6 @@
 import serviceCategories from '../data/serviceCategories.js'
 
-const statusLabels = { open: 'Aberto', cancelled: 'Cancelado' }
+const statusLabels = { open: 'Aberto', cancelled: 'Cancelado', contracted: 'Contratado' }
 
 function getCategoryName(categoryId) {
   return serviceCategories.find(({ id }) => id === categoryId)?.name ?? 'Categoria indisponível'

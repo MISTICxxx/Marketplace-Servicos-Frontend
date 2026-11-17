@@ -20,6 +20,7 @@ function getEventLabel(event) {
   if (event === 'created') return 'Pedido criado'
   if (event === 'edited') return 'Pedido atualizado'
   if (event === 'cancelled') return 'Pedido cancelado'
+  if (event === 'contracted') return 'Orçamento aceito e contratação registrada'
   return 'Atualização'
 }
 
@@ -166,13 +167,16 @@ function RequestDetailsPage() {
               </dl>
               <p className="request-receipt-footnote">Salvo na sua conta.</p>
             </Card>
+            <Link className="button button--secondary" to={`/meus-pedidos/${encodeURIComponent(request.id)}/orcamentos`}>Ver orçamentos</Link>
             {request.status === 'open' ? (
               <div className="request-detail-actions">
                 <Button onClick={() => { setNotice(''); setEditing(true) }} variant="secondary">Editar solicitação</Button>
                 <Button className="button--danger" onClick={() => { setActionError(''); setConfirmCancel(true) }}>Cancelar solicitação</Button>
               </div>
             ) : (
-              <p className="request-cancelled-note" role="status">Este pedido está cancelado. Ele continua disponível para consulta, mas não pode mais ser editado.</p>
+              <p className="request-cancelled-note" role="status">{request.status === 'contracted'
+                ? 'Uma contratação foi registrada para este pedido. Consulte os detalhes na área de contratações.'
+                : 'Este pedido está cancelado. Ele continua disponível para consulta, mas não pode mais ser editado.'}</p>
             )}
           </aside>
         </div>

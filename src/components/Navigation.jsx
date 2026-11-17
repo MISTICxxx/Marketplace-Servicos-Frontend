@@ -15,46 +15,83 @@ function Navigation() {
   const { user } = useAuth()
   const logoutAndReturnHome = useLogout()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const navigationRef = useRef(null)
+  const mobileMenuButtonRef = useRef(null)
   const menuRef = useRef(null)
   const accountButtonRef = useRef(null)
   const isProviderProfile = pathname.startsWith('/prestadores/')
 
   useEffect(() => {
-    if (!menuOpen) return undefined
+    if (!menuOpen && !mobileMenuOpen) return undefined
 
     function handlePointerDown(event) {
-      if (!menuRef.current?.contains(event.target)) setMenuOpen(false)
+      if (!navigationRef.current?.contains(event.target)) {
+        setMenuOpen(false)
+        setMobileMenuOpen(false)
+      }
     }
 
     function handleKeyDown(event) {
       if (event.key === 'Escape') {
         setMenuOpen(false)
-        accountButtonRef.current?.focus()
+        setMobileMenuOpen(false)
+        if (mobileMenuOpen) mobileMenuButtonRef.current?.focus()
+        else accountButtonRef.current?.focus()
       }
+    }
+
+    function handleHistoryNavigation() {
+      setMenuOpen(false)
+      setMobileMenuOpen(false)
     }
 
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('popstate', handleHistoryNavigation)
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('popstate', handleHistoryNavigation)
     }
-  }, [menuOpen])
+  }, [menuOpen, mobileMenuOpen])
 
   function handleLogout() {
     logoutAndReturnHome()
     setMenuOpen(false)
+    setMobileMenuOpen(false)
   }
 
   return (
-    <nav className="main-navigation" aria-label="Navegação principal">
-      <ul className="navigation-list">
+    <nav
+      className={`main-navigation${mobileMenuOpen ? ' is-mobile-open' : ''}`}
+      aria-label="Navegação principal"
+      ref={navigationRef}
+    >
+      <button
+        aria-controls="primary-navigation-list"
+        aria-expanded={mobileMenuOpen}
+        aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+        className="mobile-menu-toggle"
+        onClick={() => {
+          setMobileMenuOpen((isOpen) => !isOpen)
+          setMenuOpen(false)
+        }}
+        ref={mobileMenuButtonRef}
+        type="button"
+      >
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+        <span aria-hidden="true" />
+      </button>
+      <ul className="navigation-list" id="primary-navigation-list">
         {navigationItems.map(({ to, label, end }) => (
           <li key={to}>
             <NavLink
               aria-current={isProviderProfile && to === '/servicos' ? 'page' : undefined}
               className={({ isActive }) => `navigation-link${isActive || (isProviderProfile && to === '/servicos') ? ' is-active' : ''}`}
               end={end}
+              onClick={() => setMobileMenuOpen(false)}
               to={to}
             >
               {label}
@@ -79,15 +116,16 @@ function Navigation() {
               <p className="account-menu-greeting">Sua conta</p>
               {user.role === 'provider' ? (
                 <>
-                  <NavLink aria-current={pathname === '/painel-prestador' ? 'page' : undefined} className="account-menu-link" onClick={() => setMenuOpen(false)} to="/painel-prestador">Painel profissional</NavLink>
-                  <NavLink aria-current={pathname.startsWith('/conversas') ? 'page' : undefined} className="account-menu-link" onClick={() => setMenuOpen(false)} to="/conversas">Conversas com clientes</NavLink>
+                  <NavLink aria-current={pathname === '/painel-prestador' ? 'page' : undefined} className="account-menu-link" onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }} to="/painel-prestador">Painel profissional</NavLink>
+                  <NavLink aria-current={pathname.startsWith('/conversas') ? 'page' : undefined} className="account-menu-link" onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }} to="/conversas">Conversas com clientes</NavLink>
+                  <NavLink aria-current={pathname.startsWith('/contratacoes') ? 'page' : undefined} className="account-menu-link" onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }} to="/contratacoes">Ordens de serviço</NavLink>
                 </>
               ) : (
                 <>
                   <NavLink
                 aria-current={pathname.startsWith('/conversas') ? 'page' : undefined}
                 className="account-menu-link"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }}
                 to="/conversas"
               >
                 Conversas
@@ -95,17 +133,18 @@ function Navigation() {
               <NavLink
                 aria-current={pathname.startsWith('/meus-pedidos') ? 'page' : undefined}
                 className="account-menu-link"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }}
                 to="/meus-pedidos"
               >
                 Meus pedidos
               </NavLink>
+              <NavLink aria-current={pathname.startsWith('/contratacoes') ? 'page' : undefined} className="account-menu-link" onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }} to="/contratacoes">Contratações</NavLink>
                 </>
               )}
               <NavLink
                 aria-current={pathname === '/minha-conta' ? 'page' : undefined}
                 className="account-menu-link"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => { setMenuOpen(false); setMobileMenuOpen(false) }}
                 to="/minha-conta"
               >
                 {user.role === 'provider' ? 'Dados da conta' : 'Meu perfil'}
@@ -118,10 +157,10 @@ function Navigation() {
         ) : (
           <>
             <li className="navigation-account-link">
-              <Link className="navigation-link" to="/entrar">Entrar</Link>
+              <Link className="navigation-link" onClick={() => setMobileMenuOpen(false)} to="/entrar">Entrar</Link>
             </li>
             <li className="navigation-account-link">
-              <Link className="button button--primary navigation-signup" to="/cadastro">Criar conta</Link>
+              <Link className="button button--primary navigation-signup" onClick={() => setMobileMenuOpen(false)} to="/cadastro">Criar conta</Link>
             </li>
           </>
         )}

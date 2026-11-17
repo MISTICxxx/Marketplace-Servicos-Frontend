@@ -4,7 +4,10 @@ import useAuth from '../auth/useAuth.js'
 import ProviderAvatar from '../components/ProviderAvatar.jsx'
 import Button from '../components/common/Button.jsx'
 import Card from '../components/common/Card.jsx'
+import QuoteCard from '../components/quotes/QuoteCard.jsx'
+import QuoteComposer from '../components/quotes/QuoteComposer.jsx'
 import conversationService, { MAX_MESSAGE_LENGTH } from '../services/conversationService.js'
+import quoteService from '../services/quoteService.js'
 import { getCategoryName, statusLabels } from '../utils/requestFormatting.js'
 
 async function loadConversation(ownerId, conversationId) {
@@ -62,12 +65,18 @@ function ConversationPage({ ownerId, role = 'customer' }) {
   const [draft, setDraft] = useState('')
   const [actionError, setActionError] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [quoteState, setQuoteState] = useState({ loading: true, quotes: [], error: '', attempt: 0 })
+  const [showQuoteComposer, setShowQuoteComposer] = useState(false)
+  const [editingQuote, setEditingQuote] = useState(null)
+  const [quoteNotice, setQuoteNotice] = useState('')
+  const [quoteAttempt, setQuoteAttempt] = useState(0)
   const actionLockRef = useRef(false)
   const messagesEndRef = useRef(null)
   const { state } = useLocation()
   const conversation = chat.conversation
   const isProvider = role === 'provider'
-  const isReadOnly = !chat.request || chat.request.status !== 'open' || !chat.provider
+  const isReadOnly = !chat.request || !['open', 'contracted'].includes(chat.request.status) || !chat.provider
+  const currentConversationId = conversation?.id
 
   useEffect(() => {
     let active = true
@@ -78,6 +87,17 @@ function ConversationPage({ ownerId, role = 'customer' }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' })
   }, [conversation?.messages.length])
+
+  useEffect(() => {
+    if (!currentConversationId) return undefined
+    let active = true
+    quoteService.listForConversation(currentConversationId).then((quotes) => {
+      if (active) setQuoteState({ loading: false, quotes, error: '', attempt: quoteAttempt })
+    }).catch((error) => {
+      if (active) setQuoteState({ loading: false, quotes: [], error: error.response?.data?.error || error.message || 'Não foi possível carregar os orçamentos desta conversa.', attempt: quoteAttempt })
+    })
+    return () => { active = false }
+  }, [currentConversationId, quoteAttempt])
 
   async function runAction(action, clearDraft = false) {
     if (actionLockRef.current) return
@@ -109,6 +129,34 @@ function ConversationPage({ ownerId, role = 'customer' }) {
       return
     }
     void runAction(() => conversationService.sendAsParticipant(ownerId, conversation.id, trimmedDraft), true)
+  }
+
+  async function saveQuote(values, quoteId) {
+    try {
+      if (quoteId) await quoteService.revise(quoteId, values)
+      else await quoteService.createForConversation(conversation.id, values)
+      setShowQuoteComposer(false)
+      setEditingQuote(null)
+      setQuoteNotice(quoteId ? 'Nova versão do orçamento enviada.' : 'Orçamento enviado e registrado nesta conversa.')
+      setQuoteAttempt((current) => current + 1)
+    } catch (error) {
+      throw new Error(error.response?.data?.error || (error.response?.status === 401
+        ? 'Sua sessão expirou. Entre novamente para continuar.'
+        : error.response?.status >= 500
+          ? 'A API está temporariamente indisponível. Os dados do formulário foram mantidos.'
+          : error.message || 'Não foi possível salvar o orçamento.'), { cause: error })
+    }
+  }
+
+  async function withdrawQuote(quote) {
+    if (!window.confirm(`Retirar o orçamento “${quote.title}”? O cliente não poderá aceitá-lo.`)) return
+    try {
+      await quoteService.withdraw(quote.id)
+      setQuoteNotice('Orçamento retirado. O registro continua visível no histórico.')
+      setQuoteAttempt((current) => current + 1)
+    } catch (error) {
+      setQuoteNotice(error.response?.data?.error || 'Não foi possível retirar o orçamento.')
+    }
   }
 
   if (chat.loading) return <p className="page-container page-section" role="status">Carregando conversa…</p>
@@ -145,6 +193,8 @@ function ConversationPage({ ownerId, role = 'customer' }) {
   const characterCount = draft.length
   const readOnlyMessage = chat.request?.status === 'cancelled'
     ? 'Este pedido foi cancelado. O histórico permanece disponível, mas a conversa está somente para leitura.'
+    : chat.request?.status === 'contracted'
+      ? 'A contratação foi registrada. Esta conversa continua disponível para combinar a execução do serviço.'
     : !chat.request
       ? 'O pedido associado não está disponível para esta conta. O histórico pode ser consultado, mas novas mensagens estão desativadas.'
       : 'O perfil do prestador não está disponível. O histórico pode ser consultado, mas novas mensagens estão desativadas.'
@@ -174,6 +224,42 @@ function ConversationPage({ ownerId, role = 'customer' }) {
         </header>
 
         {isReadOnly && <p className="conversation-readonly-note" role="status">{readOnlyMessage}</p>}
+
+        <section aria-labelledby="conversation-quotes-title" className="conversation-quotes">
+          <header className="conversation-quotes-heading">
+            <div><p className="eyebrow">Propostas registradas</p><h2 id="conversation-quotes-title">Orçamentos desta conversa</h2></div>
+            {isProvider && chat.request?.status === 'open' && !showQuoteComposer && !editingQuote && (
+              <Button onClick={() => { setShowQuoteComposer(true); setQuoteNotice('') }}>Nova alternativa</Button>
+            )}
+          </header>
+          {quoteNotice && <p className="form-message form-message--info" role="status">{quoteNotice}</p>}
+          {quoteState.error && (
+            <div className="conversation-quotes-error" role="alert">
+              <p>{quoteState.error}</p>
+              <Button onClick={() => setQuoteAttempt((current) => current + 1)} variant="secondary">Tentar novamente</Button>
+            </div>
+          )}
+          {(quoteState.loading || quoteState.attempt !== quoteAttempt) && <p role="status">Carregando orçamentos…</p>}
+          {!quoteState.loading && quoteState.attempt === quoteAttempt && !quoteState.error && quoteState.quotes.length === 0 && <p className="conversation-quotes-empty">Nenhum orçamento enviado nesta conversa.</p>}
+          {quoteState.quotes.length > 0 && (
+            <div className="conversation-quotes-list">
+              {quoteState.quotes.map((quote) => (
+                <QuoteCard
+                  key={quote.id}
+                  onRevise={(selected) => { setEditingQuote(selected); setShowQuoteComposer(false); setQuoteNotice('') }}
+                  onWithdraw={withdrawQuote}
+                  providerActions={isProvider && chat.request?.status === 'open'}
+                  quote={quote}
+                />
+              ))}
+            </div>
+          )}
+          {showQuoteComposer && <QuoteComposer conversationId={conversation.id} key="new-quote" onCancel={() => setShowQuoteComposer(false)} onSubmit={saveQuote} />}
+          {editingQuote && <QuoteComposer conversationId={conversation.id} key={`revise-${editingQuote.id}-${editingQuote.currentVersionId}`} onCancel={() => setEditingQuote(null)} onSubmit={saveQuote} quote={editingQuote} />}
+          {!isProvider && chat.request && quoteState.quotes.length > 0 && (
+            <Link className="text-link" to={`/meus-pedidos/${encodeURIComponent(chat.request.id)}/orcamentos`}>Comparar todas as propostas deste pedido <span aria-hidden="true">→</span></Link>
+          )}
+        </section>
 
         <div aria-label="Histórico de mensagens" aria-live="polite" className="conversation-messages" role="log">
           {conversation.messages.length === 0 ? (

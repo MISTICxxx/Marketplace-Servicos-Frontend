@@ -20,6 +20,9 @@ import ServiceRequestPage from './pages/ServiceRequestPage.jsx'
 import MyRequestsPage from './pages/MyRequestsPage.jsx'
 import RequestDetailsPage from './pages/RequestDetailsPage.jsx'
 import ServicesPage from './pages/ServicesPage.jsx'
+import QuoteComparisonPage from './pages/QuoteComparisonPage.jsx'
+import ServiceOrdersPage from './pages/ServiceOrdersPage.jsx'
+import ServiceOrderDetailsPage from './pages/ServiceOrderDetailsPage.jsx'
 import './App.css'
 
 function ProtectedRoute({ children, role }) {
@@ -108,6 +111,30 @@ function AppLayout() {
             element={(
               <ProtectedRoute role="customer">
                 <RequestDetailsPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/meus-pedidos/:requestId/orcamentos"
+            element={(
+              <ProtectedRoute role="customer">
+                <QuoteComparisonPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/contratacoes"
+            element={(
+              <ProtectedRoute>
+                <ServiceOrdersPage />
+              </ProtectedRoute>
+            )}
+          />
+          <Route
+            path="/contratacoes/:orderId"
+            element={(
+              <ProtectedRoute>
+                <ServiceOrderDetailsPage />
               </ProtectedRoute>
             )}
           />
