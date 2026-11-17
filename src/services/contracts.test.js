@@ -13,6 +13,8 @@ import authService from './authService.js'
 import conversationService from './conversationService.js'
 import { getMyProviderProfile, getProviderById, getProviders, saveProviderAd } from './providerService.js'
 import requestService from './requestService.js'
+import quoteService from './quoteService.js'
+import serviceOrderService from './serviceOrderService.js'
 
 const user = { id: 'user-test-1', name: 'Pessoa de Teste', role: 'customer' }
 
@@ -204,5 +206,39 @@ describe('contratos HTTP dos serviços', () => {
     apiMocks.post.mockResolvedValueOnce({ data: { conversation: { id: 'conversation-test-1' } } })
     await conversationService.markReadForParticipant(user.id, 'conversation-test-1')
     expect(apiMocks.post).toHaveBeenCalledWith('/conversations/conversation-test-1/read')
+  })
+
+  it('envia e consulta alternativas/versionamento usando os contratos REST de orçamento', async () => {
+    const version = { amountCents: 22500, description: 'Revisão de instalação e troca de componentes.', includedItems: ['Mão de obra'], excludedItems: [], estimatedDays: 2, conditions: 'Material adicional combinado antes.', validUntil: null }
+    apiMocks.post.mockResolvedValueOnce({ data: { quote: { id: 'quote-test-1', title: 'Opção econômica' } } })
+    await expect(quoteService.createForConversation('conversation-test-1', { title: 'Opção econômica', ...version }))
+      .resolves.toEqual({ id: 'quote-test-1', title: 'Opção econômica' })
+    expect(apiMocks.post).toHaveBeenCalledWith('/conversations/conversation-test-1/quotes', { title: 'Opção econômica', ...version })
+
+    apiMocks.post.mockResolvedValueOnce({ data: { quote: { id: 'quote-test-1', currentVersionId: 'version-2' } } })
+    await quoteService.revise('quote-test-1', version)
+    expect(apiMocks.post).toHaveBeenLastCalledWith('/quotes/quote-test-1/versions', version)
+
+    apiMocks.get.mockResolvedValueOnce({ data: { data: [{ id: 'quote-test-1' }] } })
+    await expect(quoteService.listForRequest('request-test-1')).resolves.toEqual([{ id: 'quote-test-1' }])
+    expect(apiMocks.get).toHaveBeenLastCalledWith('/requests/request-test-1/quotes')
+
+    apiMocks.get.mockResolvedValueOnce({ data: { data: [{ id: 'version-1' }, { id: 'version-2' }] } })
+    await expect(quoteService.listVersions('quote-test-1')).resolves.toHaveLength(2)
+    expect(apiMocks.get).toHaveBeenLastCalledWith('/quotes/quote-test-1/versions')
+
+    apiMocks.post.mockResolvedValueOnce({ data: { order: { id: 'order-test-1' }, created: true } })
+    await expect(quoteService.acceptVersion('quote-test-1', 'version-2')).resolves.toMatchObject({ created: true })
+    expect(apiMocks.post).toHaveBeenLastCalledWith('/quotes/quote-test-1/accept', { versionId: 'version-2' })
+  })
+
+  it('consulta ordens de serviço próprias e detalhes sem fabricar respostas', async () => {
+    apiMocks.get.mockResolvedValueOnce({ data: { data: [{ id: 'order-test-1' }] } })
+    await expect(serviceOrderService.list('request-test-1')).resolves.toEqual([{ id: 'order-test-1' }])
+    expect(apiMocks.get).toHaveBeenCalledWith('/service-orders', { params: { requestId: 'request-test-1' } })
+
+    apiMocks.get.mockResolvedValueOnce({ data: { order: { id: 'order-test-1', amountCents: 22500 } } })
+    await expect(serviceOrderService.getById('order-test-1')).resolves.toMatchObject({ amountCents: 22500 })
+    expect(apiMocks.get).toHaveBeenLastCalledWith('/service-orders/order-test-1')
   })
 })

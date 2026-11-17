@@ -5,6 +5,8 @@ import authService from '../../src/services/authService.js'
 import conversationService from '../../src/services/conversationService.js'
 import { getMyProviderProfile, getProviderById, getProviders, saveProviderAd } from '../../src/services/providerService.js'
 import requestService from '../../src/services/requestService.js'
+import quoteService from '../../src/services/quoteService.js'
+import serviceOrderService from '../../src/services/serviceOrderService.js'
 
 function getSafeApiBaseUrl() {
   const rawUrl = process.env.FECHOU_FRONTEND_TEST_API_URL
@@ -120,11 +122,51 @@ describe('serviços do frontend contra a API descartável', () => {
     )
     expect(providerReply.messages.some((message) => message.text === 'Sim, tenho horário na quinta-feira.')).toBe(true)
 
+    const baseQuote = {
+      amountCents: 21500,
+      description: 'Instalação da luminária e teste do ponto elétrico existente.',
+      includedItems: ['Mão de obra', 'Teste de funcionamento'],
+      excludedItems: ['Luminária'],
+      estimatedDays: 1,
+      conditions: 'O acesso ao ponto precisa estar liberado.',
+      validUntil: null,
+    }
+    const initialQuote = await quoteService.createForConversation(firstConversation.conversation.id, {
+      title: 'Instalação essencial', ...baseQuote,
+    })
+    expect(initialQuote.currentVersion).toMatchObject({ amountCents: 21500, versionNumber: 1 })
+    const revisedQuote = await quoteService.revise(initialQuote.id, {
+      ...baseQuote,
+      amountCents: 23500,
+      description: 'Instalação com substituição de conector e teste do ponto elétrico.',
+    })
+    expect(revisedQuote.currentVersion).toMatchObject({ amountCents: 23500, versionNumber: 2 })
+    const alternative = await quoteService.createForConversation(firstConversation.conversation.id, {
+      title: 'Instalação com acabamento', ...baseQuote, amountCents: 29000,
+    })
+    expect(alternative.id).not.toBe(initialQuote.id)
+
     await authService.signIn({ email: customerEmail, password })
     const persisted = await conversationService.getForParticipant(customer.id, firstConversation.conversation.id)
     expect(persisted.messages.map((message) => message.text)).toEqual([
       'Olá, consegue instalar esta semana?',
       'Sim, tenho horário na quinta-feira.',
     ])
+
+    const comparableQuotes = await quoteService.listForRequest(request.id)
+    expect(comparableQuotes).toHaveLength(2)
+    expect(comparableQuotes.map((quote) => quote.id)).toEqual(expect.arrayContaining([initialQuote.id, alternative.id]))
+    const storedVersions = await quoteService.listVersions(initialQuote.id)
+    expect(storedVersions.map((version) => version.amountCents)).toEqual([21500, 23500])
+    const accepted = await quoteService.acceptVersion(initialQuote.id, revisedQuote.currentVersion.id)
+    expect(accepted).toMatchObject({ created: true, order: { quoteId: initialQuote.id, quoteVersionId: revisedQuote.currentVersion.id, amountCents: 23500 } })
+    const orders = await serviceOrderService.list(request.id)
+    expect(orders).toHaveLength(1)
+    expect(orders[0].quoteVersionId).toBe(revisedQuote.currentVersion.id)
+    await expect(serviceOrderService.getById(orders[0].id)).resolves.toMatchObject({ status: 'contracted', amountCents: 23500 })
+    expect(await authService.getCurrentUser()).toMatchObject({ id: customer.id, role: 'customer' })
+
+    const contractedMessage = await conversationService.sendMessage(customer.id, firstConversation.conversation.id, 'Recebi o registro e podemos combinar a visita.')
+    expect(contractedMessage.messages.at(-1).text).toBe('Recebi o registro e podemos combinar a visita.')
   })
 })
