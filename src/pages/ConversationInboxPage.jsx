@@ -176,7 +176,7 @@ function CustomerConversationInboxPage({ user }) {
         <Link className="button button--secondary" to="/meus-pedidos">Ver meus pedidos</Link>
       </header>
 
-      {selectedProvider && !inbox.error && (
+      {selectedProvider && !inbox.loading && !inbox.error && (
         <StartConversationPanel
           onOpen={handleOpen}
           providerId={selectedProvider}
