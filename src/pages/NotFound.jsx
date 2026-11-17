@@ -5,7 +5,7 @@ function NotFound() {
     <section className="not-found page-container" aria-labelledby="not-found-title">
       <p className="eyebrow">Erro 404</p>
       <h1 id="not-found-title">Não encontramos esta página.</h1>
-      <p>O endereço pode estar incorreto ou a página ainda não fazer parte desta etapa do Fechou!.</p>
+      <p>Confira o endereço ou volte ao início para continuar encontrando serviços.</p>
       <Link className="button button--primary" to="/">Voltar ao início</Link>
     </section>
   )

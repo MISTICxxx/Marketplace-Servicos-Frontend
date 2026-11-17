@@ -15,13 +15,13 @@ const steps = [
   },
   {
     number: '02',
-    title: 'Conheça o perfil',
-    description: 'Veja a apresentação, os serviços e a região de atendimento.',
+    title: 'Converse e compare',
+    description: 'Troque mensagens e compare alternativas com valores, escopo e prazo.',
   },
   {
     number: '03',
-    title: 'Registre o que precisa',
-    description: 'Organize os detalhes e converse sobre o serviço.',
+    title: 'Aceite uma versão',
+    description: 'Confirme a proposta escolhida e consulte a ordem de serviço registrada.',
   },
 ]
 
@@ -64,7 +64,7 @@ function Home() {
               Encontre quem <span>resolve.</span>
             </h1>
             <p className="hero-description">
-              Pesquise um serviço, conheça os perfis e descubra quem pode ajudar.
+              Encontre profissionais, converse sobre o que você precisa e compare propostas antes de contratar.
             </p>
             <ProviderSearch
               buttonLabel="Buscar"
@@ -120,7 +120,9 @@ function Home() {
               key={category.id}
               to={`/servicos?${createSearchParams({ categoria: category.id })}`}
             >
-              <span className="category-icon" aria-hidden="true">{category.icon}</span>
+              <span className="category-icon" aria-hidden="true">
+                {category.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toLocaleUpperCase('pt-BR')}
+              </span>
               <span>{category.name}</span>
               <span className="category-arrow" aria-hidden="true">↗</span>
             </Link>
@@ -163,7 +165,7 @@ function Home() {
         <div className="section-heading">
           <p className="eyebrow">Uma jornada simples</p>
           <h2 id="how-title">Do que você precisa ao próximo passo</h2>
-          <p>Explore os perfis, registre um pedido e converse sobre o serviço. Propostas e contratação virão em etapas futuras.</p>
+          <p>Explore os perfis, registre um pedido, compare propostas recebidas e aceite a versão que atende ao seu serviço.</p>
         </div>
         <div className="steps-grid">
           {steps.map((step) => (
